@@ -1,0 +1,18 @@
+services:
+  socialplan:
+    build: .
+    restart: unless-stopped
+    environment:
+      SOCIALPLAN_DB: /data/socialplan.sqlite3
+      SOCIALPLAN_UPLOAD_DIR: /data/uploads
+    volumes:
+      - socialplan_data:/data
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health',timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+volumes:
+  socialplan_data:

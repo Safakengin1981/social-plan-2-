@@ -124,6 +124,24 @@ def auth(authorization:str=Header(default='')):
   u=c.execute('SELECT users.* FROM sessions JOIN users ON users.id=sessions.user_id WHERE token_hash=? AND expires>?',(th,int(time.time()))).fetchone()
  if not u:raise HTTPException(401,'Oturum geçersiz')
  return dict(u)
+@app.get('/api/admin/storage/status')
+def storage_status(u=Depends(auth)):
+ if u['role']!='admin':raise HTTPException(403,'Yönetici yetkisi gerekli')
+ # Do not expose credentials, filesystem paths, or database contents.
+ database_external=False
+ persistent_disk=DB.startswith('/var/data/')
+ return {
+  'database_engine':'sqlite',
+  'external_database':database_external,
+  'persistent_disk_configured':persistent_disk,
+  'durable':persistent_disk,
+  'warning':('SQLite is on a persistent mount; backups must still be verified.'
+    if persistent_disk else
+    'SQLite is on ephemeral storage. Render restart or redeploy can delete accounts and content.'),
+  'media_durable':False,
+  'backup_export_available':True,
+  'automatic_restore_verified':False
+ }
 @app.get('/api/health')
 def health():
  return {'status':'ok','instagram_publishing':'not_configured','release':'1.6'}

@@ -271,19 +271,24 @@ def export_content_archive(u=Depends(auth)):
   metadata={'format':'socialplan-content-export-v1','exported_at':datetime.now(timezone.utc).isoformat(),
    'business':business['name'] if business else '', 'posts':posts_rows,'audit_events':audit_rows,
    'warning':'Content export only. Does not contain user accounts, sessions, Instagram tokens or a verified restoration procedure.'}
-  archive.writestr('content.json',json.dumps(metadata,ensure_ascii=False,indent=2))
+  missing_media=[]
   for post in posts_rows:
    url=post['media_url']
    if not url.startswith('/api/media/'):continue
    name=url.removeprefix('/api/media/')
    if not name or name in ('.','..') or '/' in name or '\\' in name:continue
    path=media_dir/name
-   if not path.is_file() or path.is_symlink():continue
+   if not path.is_file() or path.is_symlink():
+    missing_media.append(name)
+    continue
    size=path.stat().st_size
    if size>25*1024*1024 or total+size>limit:
     raise HTTPException(413,'Medya arşivi 100 MB sınırını aşıyor. Önce medya dosyalarını azaltın.')
    total+=size
    archive.write(path,arcname='media/'+name)
+  metadata['missing_media']=missing_media
+  metadata['media_complete']=not missing_media
+  archive.writestr('content.json',json.dumps(metadata,ensure_ascii=False,indent=2))
  return Response(content=buffer.getvalue(),media_type='application/zip',
   headers={'Content-Disposition':'attachment; filename="socialplan-content-export.zip"',
    'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'})

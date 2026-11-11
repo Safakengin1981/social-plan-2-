@@ -7,5 +7,7 @@ RUN python -m zipfile -e /tmp/socialplan-release.zip /app \
     && rm /tmp/socialplan-release.zip \
     && pip install --no-cache-dir -r requirements.txt \
     && python -m py_compile app.py
+COPY app.py instagram_login.py /app/
+RUN pip install --no-cache-dir 'cryptography>=43,<47' && python -m py_compile app.py instagram_login.py
 EXPOSE 10000
 CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-10000}"]

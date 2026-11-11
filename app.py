@@ -163,15 +163,18 @@ def create(x:PostIn,u=Depends(auth)):
  if not (x.media_url.startswith('https://') or (x.media_url.startswith('/api/media/') and '..' not in x.media_url)):raise HTTPException(422,'Geçersiz medya bağlantısı')
  with conn() as c:
   cur=c.execute('INSERT INTO posts(business_id,author_id,caption,media_url,scheduled_at,status,created_at) VALUES(?,?,?,?,?,?,?)',(u['business_id'],u['id'],x.caption,x.media_url,x.scheduled_at,'draft',int(time.time())))
- audit_record(u, 'post_created', cur.lastrowid)
- return {'id':cur.lastrowid,'status':'draft'}
+  post_id=cur.lastrowid
+  c.execute('INSERT INTO audit_events(business_id,user_id,action,post_id,created_at) VALUES(?,?,?,?,?)',
+            (u['business_id'],u['id'],'post_created',post_id,int(time.time())))
+ return {'id':post_id,'status':'draft'}
 @app.post('/api/posts/{post_id}/approve')
 def approve(post_id:int,u=Depends(auth)):
  if u['role']!='admin':raise HTTPException(403,'Yönetici yetkisi gerekli')
  with conn() as c:
   cur=c.execute("UPDATE posts SET status='approved' WHERE id=? AND business_id=? AND status='draft'",(post_id,u['business_id']))
   if cur.rowcount==0:raise HTTPException(404,'Onaylanabilir içerik bulunamadı')
- audit_record(u, 'post_approved', post_id)
+  c.execute('INSERT INTO audit_events(business_id,user_id,action,post_id,created_at) VALUES(?,?,?,?,?)',
+            (u['business_id'],u['id'],'post_approved',post_id,int(time.time())))
  return {'status':'approved','note':'Onaylandı; otomatik Instagram yayınlama henüz bağlı değil'}
 @app.post('/api/logout')
 def logout(authorization:str=Header(default=''),u=Depends(auth)):
@@ -187,7 +190,8 @@ def cancel(post_id:int,u=Depends(auth)):
  with conn() as c:
   cur=c.execute("UPDATE posts SET status='cancelled' WHERE id=? AND business_id=? AND status IN ('draft','approved')",(post_id,u['business_id']))
   if cur.rowcount==0:raise HTTPException(404,'İptal edilebilir içerik bulunamadı')
- audit_record(u, 'post_cancelled', post_id)
+  c.execute('INSERT INTO audit_events(business_id,user_id,action,post_id,created_at) VALUES(?,?,?,?,?)',
+            (u['business_id'],u['id'],'post_cancelled',post_id,int(time.time())))
  return {'status':'cancelled'}
 
 from instagram_login import attach_instagram_login

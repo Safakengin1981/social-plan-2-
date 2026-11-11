@@ -172,6 +172,9 @@ def cancel(post_id:int,u=Depends(auth)):
  audit_record(u, 'post_cancelled', post_id)
  return {'status':'cancelled'}
 
+from instagram_login import attach_instagram_login
+app.include_router(attach_instagram_login(auth,conn))
+
 from publishing import attach_publishing
 app.include_router(attach_publishing(auth,conn))
 

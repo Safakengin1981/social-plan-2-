@@ -134,8 +134,8 @@ def storage_status(u=Depends(auth)):
   'database_engine':'sqlite',
   'external_database':database_external,
   'persistent_disk_configured':persistent_disk,
-  'durable':persistent_disk,
-  'warning':('SQLite is on a persistent mount; backups must still be verified.'
+  'durable':False, # Mount path alone does not prove persistence.
+  'warning':('SQLite points to a persistent-style path; verify the actual mounted disk and backups.'
     if persistent_disk else
     'SQLite is on ephemeral storage. Render restart or redeploy can delete accounts and content.'),
   'media_durable':False,

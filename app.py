@@ -246,3 +246,44 @@ def export_posts(u=Depends(auth)):
   w.writerow(values)
  return StreamingResponse(iter([out.getvalue()]),media_type='text/csv; charset=utf-8',
   headers={'Content-Disposition':'attachment; filename="socialplan_posts.csv"','Cache-Control':'no-store'})
+
+@app.get('/api/admin/export-content.zip')
+def export_content_archive(u=Depends(auth)):
+ """Tenant-scoped content export; intentionally excludes credentials and OAuth tokens."""
+ if u['role']!='admin':raise HTTPException(403,'Yönetici yetkisi gerekli')
+ import io, json, zipfile
+ from pathlib import Path
+ from fastapi.responses import Response
+ from datetime import datetime, timezone
+ with conn() as c:
+  posts_rows=[dict(x) for x in c.execute(
+   'SELECT id,caption,media_url,scheduled_at,status,created_at FROM posts WHERE business_id=? ORDER BY id',
+   (u['business_id'],)).fetchall()]
+  audit_rows=[dict(x) for x in c.execute(
+   'SELECT action,post_id,created_at FROM audit_events WHERE business_id=? ORDER BY id',
+   (u['business_id'],)).fetchall()]
+  business=c.execute('SELECT name FROM businesses WHERE id=?',(u['business_id'],)).fetchone()
+ media_dir=Path(os.getenv('SOCIALPLAN_UPLOAD_DIR',os.path.join(BASE,'uploads')))/str(u['business_id'])
+ limit=100*1024*1024
+ total=0
+ buffer=io.BytesIO()
+ with zipfile.ZipFile(buffer,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=5) as archive:
+  metadata={'format':'socialplan-content-export-v1','exported_at':datetime.now(timezone.utc).isoformat(),
+   'business':business['name'] if business else '', 'posts':posts_rows,'audit_events':audit_rows,
+   'warning':'Content export only. Does not contain user accounts, sessions, Instagram tokens or a verified restoration procedure.'}
+  archive.writestr('content.json',json.dumps(metadata,ensure_ascii=False,indent=2))
+  for post in posts_rows:
+   url=post['media_url']
+   if not url.startswith('/api/media/'):continue
+   name=url.removeprefix('/api/media/')
+   if not name or name in ('.','..') or '/' in name or '\\' in name:continue
+   path=media_dir/name
+   if not path.is_file() or path.is_symlink():continue
+   size=path.stat().st_size
+   if size>25*1024*1024 or total+size>limit:
+    raise HTTPException(413,'Medya arşivi 100 MB sınırını aşıyor. Önce medya dosyalarını azaltın.')
+   total+=size
+   archive.write(path,arcname='media/'+name)
+ return Response(content=buffer.getvalue(),media_type='application/zip',
+  headers={'Content-Disposition':'attachment; filename="socialplan-content-export.zip"',
+   'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'})

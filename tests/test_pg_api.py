@@ -45,6 +45,21 @@ def test_pg_api_two_tenants_login_posts_and_logout(monkeypatch):
         "file": ("unsafe.html", b"<script>bad</script>", "text/html")
     }).status_code == 422
 
+    uploaded_post = client.post("/api/posts", headers=a, json={
+        "caption": "Private uploaded image", "media_key": media_key,
+        "scheduled_at": "2030-01-01T12:00:00Z",
+    })
+    assert uploaded_post.status_code == 200, uploaded_post.text
+    other_tenant_post = client.post("/api/posts", headers=b, json={
+        "caption": "Unauthorized media", "media_key": media_key,
+        "scheduled_at": "2030-01-01T12:00:00Z",
+    })
+    assert other_tenant_post.status_code == 404, other_tenant_post.text
+    assert client.post("/api/posts", headers=a, json={
+        "caption": "Ambiguous media", "media_key": media_key,
+        "media_url": "https://example.test/another.jpg",
+        "scheduled_at": "2030-01-01T12:00:00Z",
+    }).status_code == 422
     rejected = client.post("/api/posts", headers=a, json={
         "caption": "Unsafe local media", "media_url": "/api/media/temporary.jpg",
         "scheduled_at": "2030-01-01T12:00:00Z",
@@ -56,7 +71,7 @@ def test_pg_api_two_tenants_login_posts_and_logout(monkeypatch):
     })
     assert response.status_code == 200, response.text
     post_id = response.json()["id"]
-    assert len(client.get("/api/posts", headers=a).json()) == 1
+    assert len(client.get("/api/posts", headers=a).json()) == 2
     assert client.get("/api/posts", headers=b).json() == []
     assert client.post(f"/api/posts/{post_id}/approve", headers=b).status_code == 404
     assert client.post(f"/api/posts/{post_id}/approve", headers=a).status_code == 200

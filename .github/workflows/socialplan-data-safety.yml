@@ -71,5 +71,5 @@ jobs:
           pg_dump --format=custom --no-owner --no-acl --file=/tmp/socialplan-ci.dump socialplan_ci
           createdb socialplan_ci_restored
           pg_restore --no-owner --no-acl --exit-on-error --dbname=socialplan_ci_restored /tmp/socialplan-ci.dump
-          psql -v ON_ERROR_STOP=1 -d socialplan_ci_restored -c "DO \\\$\\\$ BEGIN IF NOT EXISTS (SELECT 1 FROM businesses WHERE name='socialplan-ci-restart-check') THEN RAISE EXCEPTION 'Backup restore lost marker'; END IF; END \\\$\\\$;"
+          test "$(psql -v ON_ERROR_STOP=1 -d socialplan_ci_restored -tAc "SELECT count(*) FROM businesses WHERE name='socialplan-ci-restart-check'")" = "1"
           rm -f /tmp/socialplan-ci.dump

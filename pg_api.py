@@ -114,6 +114,8 @@ def create_post(x: Post, user=Depends(auth)):
             durable_media.read(user["business_id"], x.media_key)
         except (PermissionError, KeyError):
             raise HTTPException(404, "Bu işletmeye ait medya bulunamadı")
+        except ValueError:
+            raise HTTPException(502, "Depolanan medya dosyası bozuk veya boyut sınırını aşıyor")
         except RuntimeError:
             raise HTTPException(503, "Kalıcı medya depolaması yapılandırılmamış")
         media_reference = "private-s3://" + x.media_key
@@ -173,6 +175,8 @@ def download_media(key: str, user=Depends(auth)):
         data, content_type = durable_media.read(user["business_id"], key)
     except PermissionError:
         raise HTTPException(404, "Medya bulunamadı")
+    except ValueError:
+        raise HTTPException(502, "Depolanan medya dosyası bozuk veya boyut sınırını aşıyor")
     except RuntimeError:
         raise HTTPException(503, "Kalıcı medya depolaması yapılandırılmamış")
     return Response(content=data, media_type=content_type,

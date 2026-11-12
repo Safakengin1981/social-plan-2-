@@ -55,3 +55,12 @@ def test_durable_media_rejects_oversized_download(monkeypatch):
     fake.objects[key]["Body"] = b"x" * (media.MAX_BYTES + 1)
     with pytest.raises(ValueError, match="exceeds"):
         media.read(7, key)
+
+def test_durable_media_requires_checksum_metadata(monkeypatch):
+    fake = FakeClient()
+    monkeypatch.setattr(media, "client", lambda: fake)
+    monkeypatch.setattr(media, "bucket", lambda: "ci-private-bucket")
+    key = media.save(7, b"sample", "image/jpeg")
+    fake.objects[key]["Metadata"] = {}
+    with pytest.raises(ValueError, match="checksum missing"):
+        media.read(7, key)

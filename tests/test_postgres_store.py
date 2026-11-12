@@ -27,6 +27,21 @@ def test_postgres_tenant_isolation_and_atomic_audit():
         audit = db.execute("SELECT action FROM audit_events WHERE business_id=%s ORDER BY id", (a,)).fetchall()
         assert [row["action"] for row in audit] == ["post_created", "post_approved"]
 
+    # Database-level tenant integrity: even a faulty query cannot attach a
+    # tenant B user or queue entry to tenant A content.
+    with pytest.raises(psycopg.errors.ForeignKeyViolation):
+        with store.connection() as db:
+            db.execute(
+                "INSERT INTO audit_events(business_id,user_id,action,post_id,created_at) "
+                "VALUES (%s,%s,'cross_tenant',%s,1)", (a, ub, p),
+            )
+    with pytest.raises(psycopg.errors.ForeignKeyViolation):
+        with store.connection() as db:
+            db.execute(
+                "INSERT INTO publish_jobs(post_id,business_id,state,reason,updated_at) "
+                "VALUES (%s,%s,'queued','invalid',1)", (p, b),
+            )
+
     # Session lifecycle: only hashed bearer tokens are persisted.
     store.create_session("hashed-test-token", ua, 100)
     assert store.get_session_user("hashed-test-token", 99)["business_id"] == a

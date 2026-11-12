@@ -51,3 +51,18 @@ def test_postgres_tenant_isolation_and_atomic_audit():
     assert store.consume_instagram_oauth_state("hashed-oauth-state", 1050) is None
     store.create_instagram_oauth_state("expired-oauth-state", a, ua, 1000, 999)
     assert store.consume_instagram_oauth_state("expired-oauth-state", 1001) is None
+
+    # Publish queue must reject cross-tenant mutation.
+    assert store.upsert_publish_job(p, b, "queued", "wrong tenant", 4) is False
+    assert store.upsert_publish_job(p, a, "queued", "waiting", 4) is True
+    assert [j["state"] for j in store.list_publish_jobs(a)] == ["queued"]
+    assert store.list_publish_jobs(b) == []
+    assert store.upsert_publish_job(p, a, "blocked", "no Meta connection", 5) is True
+    assert store.list_publish_jobs(a)[0]["state"] == "blocked"
+
+    # Only public connection fields may be returned by the status reader.
+    store.save_instagram_connection(a, "ig-123", "rhm_teras", "gAAAAencrypted-test-placeholder", 2000, 1000)
+    connection = store.get_instagram_connection(a)
+    assert connection["username"] == "rhm_teras"
+    assert "encrypted_token" not in connection
+    assert store.get_instagram_connection(b) is None

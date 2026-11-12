@@ -64,3 +64,12 @@ jobs:
         env:
           DATABASE_URL: postgresql://socialplan_test:ci-only-password@localhost:5432/socialplan_ci
         run: python -m pytest -q tests/test_pg_api.py
+      - name: Verify backup and restore in a second disposable PostgreSQL database
+        env:
+          DATABASE_URL: postgresql://socialplan_test:ci-only-password@localhost:5432/socialplan_ci
+        run: |
+          pg_dump --format=custom --no-owner --no-acl --file=/tmp/socialplan-ci.dump socialplan_ci
+          createdb socialplan_ci_restored
+          pg_restore --no-owner --no-acl --exit-on-error --dbname=socialplan_ci_restored /tmp/socialplan-ci.dump
+          psql -v ON_ERROR_STOP=1 -d socialplan_ci_restored -c "DO \\\$\\\$ BEGIN IF NOT EXISTS (SELECT 1 FROM businesses WHERE name='socialplan-ci-restart-check') THEN RAISE EXCEPTION 'Backup restore lost marker'; END IF; END \\\$\\\$;"
+          rm -f /tmp/socialplan-ci.dump

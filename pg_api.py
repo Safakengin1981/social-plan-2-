@@ -103,9 +103,10 @@ def create_post(x: Post, user=Depends(auth)):
             raise ValueError()
     except ValueError:
         raise HTTPException(422, "Gelecekte, saat dilimi belirtilmiş geçerli tarih seçin")
-    if not (x.media_url.startswith("https://") or
-            (x.media_url.startswith("/api/media/") and ".." not in x.media_url)):
-        raise HTTPException(422, "Geçersiz medya bağlantısı")
+    # This isolated API has no durable media backend. Reject local media paths
+    # rather than accepting posts whose files would disappear on redeploy.
+    if not x.media_url.startswith("https://"):
+        raise HTTPException(422, "Kalıcı medya deposu kurulana kadar yalnızca HTTPS medya bağlantısı kullanılabilir")
     post_id = store.create_post(
         user["business_id"], user["id"], x.caption, x.media_url,
         x.scheduled_at, int(time.time()),

@@ -28,6 +28,11 @@ def test_pg_api_two_tenants_login_posts_and_logout():
     a = login("a@ci.example")
     b = login("b@ci.example")
     assert client.get("/api/me", headers=a).json()["business"] == "a@ci.example"
+    rejected = client.post("/api/posts", headers=a, json={
+        "caption": "Unsafe local media", "media_url": "/api/media/temporary.jpg",
+        "scheduled_at": "2030-01-01T12:00:00Z",
+    })
+    assert rejected.status_code == 422, rejected.text
     response = client.post("/api/posts", headers=a, json={
         "caption": "A private post", "media_url": "https://example.test/post.jpg",
         "scheduled_at": "2030-01-01T12:00:00Z",

@@ -52,3 +52,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -c "INSERT INTO posts(business_id,author_id,caption,media_url,scheduled_at,status,created_at) VALUES (1,1,'CI content','https://example.test/a.jpg','2027-01-01T00:00:00Z','draft',1);"
       - name: Run PostgreSQL tenant and audit integration tests
         run: python -m pytest -q tests/test_postgres_store.py
+
+      - name: Verify PostgreSQL records survive separate application processes
+        run: |
+          python scripts/check_pg_restart.py write
+          python scripts/check_pg_restart.py read

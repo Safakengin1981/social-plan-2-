@@ -10,7 +10,7 @@ import time
 from datetime import datetime, timezone
 
 from fastapi import Depends, FastAPI, Header, HTTPException, File, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import Response, HTMLResponse
 from pydantic import BaseModel, Field
 import psycopg
 
@@ -181,6 +181,73 @@ def download_media(key: str, user=Depends(auth)):
         raise HTTPException(503, "Kalıcı medya depolaması yapılandırılmamış")
     return Response(content=data, media_type=content_type,
                     headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+
+@app.get("/pg-test", response_class=HTMLResponse)
+def test_interface():
+    """Isolated testing UI only; never mount on the production entrypoint."""
+    return """<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SocialPlan PostgreSQL Test</title>
+<style>body{font:16px system-ui;max-width:720px;margin:30px auto;padding:0 16px;color:#17212b}
+input,textarea,button{font:inherit;padding:10px;margin:6px 0;width:100%;box-sizing:border-box}
+button{background:#154e69;color:white;border:0;border-radius:6px;cursor:pointer}
+section{border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}
+</style></head><body>
+<h1>SocialPlan 5.8 — PostgreSQL test</h1>
+<p>Bu ekran yalnızca izole geliştirme API'si içindir. Instagram'a otomatik yayın yapmaz.</p>
+<section><h2>Giriş</h2><input id="email" type="email" placeholder="E-posta">
+<input id="password" type="password" placeholder="Şifre">
+<button id="login">Giriş yap</button><button id="logout">Çıkış yap</button></section>
+<section><h2>Kalıcı medya yükleme</h2>
+<input id="file" type="file" accept="image/jpeg,image/png,image/webp,video/mp4">
+<button id="upload">Dosyayı yükle</button><p id="media"></p></section>
+<section><h2>İçerik taslağı</h2><textarea id="caption" placeholder="Açıklama"></textarea>
+<input id="scheduled" type="datetime-local"><button id="create">Taslak oluştur</button>
+<button id="refresh">Taslakları listele</button></section>
+<pre id="output" role="status"></pre>
+<script>
+let token = "", mediaKey = "";
+const out = document.getElementById("output");
+async function api(path, opts = {}) {
+  const headers = {...(opts.headers || {})};
+  if (token) headers.Authorization = "Bearer " + token;
+  if (opts.body && !(opts.body instanceof FormData)) headers["Content-Type"] = "application/json";
+  const response = await fetch(path, {...opts, headers});
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail || "İstek başarısız: " + response.status);
+  return data;
+}
+function report(p) { out.textContent = typeof p === "string" ? p : JSON.stringify(p,null,2); }
+document.getElementById("login").onclick = async () => {
+ try { const r=await api("/api/login",{method:"POST",body:JSON.stringify({
+ email:document.getElementById("email").value,password:document.getElementById("password").value})});
+ token=r.token; report("Giriş başarılı. Rol: "+r.role); } catch(e){report(e.message);}
+};
+document.getElementById("logout").onclick = async () => {
+ try {if(token) await api("/api/logout",{method:"POST"});} catch(e){report(e.message);}
+ token=""; mediaKey=""; report("Oturum kapatıldı.");
+};
+document.getElementById("upload").onclick = async () => {
+ try {const file=document.getElementById("file").files[0]; if(!file) throw Error("Dosya seçin");
+ const form=new FormData();form.append("file",file);
+ const r=await api("/api/media",{method:"POST",body:form});mediaKey=r.media_key;
+ document.getElementById("media").textContent="Dosya yüklendi ("+r.size+" bayt)";
+ report("Medya anahtarı oluşturuldu.");}catch(e){report(e.message);}
+};
+document.getElementById("create").onclick = async () => {
+ try {if(!mediaKey) throw Error("Önce dosya yükleyin");
+ const local=document.getElementById("scheduled").value;
+ if(!local) throw Error("Yayın tarihi seçin");
+ const r=await api("/api/posts",{method:"POST",body:JSON.stringify({
+ caption:document.getElementById("caption").value,media_key:mediaKey,
+ scheduled_at:new Date(local).toISOString()})});report(r);}catch(e){report(e.message);}
+};
+document.getElementById("refresh").onclick = async () => {
+ try{report(await api("/api/posts"));}catch(e){report(e.message);}
+};
+</script></body></html>"""
 
 
 @app.get("/api/health")

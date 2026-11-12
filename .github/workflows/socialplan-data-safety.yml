@@ -8,6 +8,26 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: socialplan_test
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: socialplan_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U socialplan_test -d socialplan_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: socialplan_test
+      PGPASSWORD: ci-only-password
+      PGDATABASE: socialplan_ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -19,3 +39,13 @@ jobs:
         run: python -m py_compile app.py extra.py publishing.py instagram_login.py tests/test_content_export.py
       - name: Run isolated export tests
         run: python -m pytest -q tests/test_content_export.py
+      - name: Apply PostgreSQL schema twice (idempotency)
+        run: |
+          psql -v ON_ERROR_STOP=1 -f migrations/postgres/001_initial.sql
+          psql -v ON_ERROR_STOP=1 -f migrations/postgres/001_initial.sql
+      - name: Verify tables and tenant foreign keys
+        run: |
+          psql -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF (SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('businesses','users','sessions','login_attempts','posts','audit_events','publish_jobs','instagram_oauth_states','instagram_connections')) <> 9 THEN RAISE EXCEPTION 'Missing SocialPlan tables'; END IF; END \$\$;"
+          psql -v ON_ERROR_STOP=1 -c "INSERT INTO businesses(name) VALUES ('CI isolated tenant');"
+          psql -v ON_ERROR_STOP=1 -c "INSERT INTO users(business_id,email,salt,passhash,role) VALUES (1,'ci@example.test','salt','hash','admin');"
+          psql -v ON_ERROR_STOP=1 -c "INSERT INTO posts(business_id,author_id,caption,media_url,scheduled_at,status,created_at) VALUES (1,1,'CI content','https://example.test/a.jpg','2027-01-01T00:00:00Z','draft',1);"

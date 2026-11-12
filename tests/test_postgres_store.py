@@ -76,7 +76,13 @@ def test_postgres_tenant_isolation_and_atomic_audit():
     assert store.list_publish_jobs(a)[0]["state"] == "blocked"
 
     # Only public connection fields may be returned by the status reader.
-    store.save_instagram_connection(a, "ig-123", "rhm_teras", "gAAAAencrypted-test-placeholder", 2000, 1000)
+    from cryptography.fernet import Fernet
+    key = Fernet.generate_key()
+    os.environ["SOCIALPLAN_FERNET_KEY"] = key.decode()
+    encrypted = Fernet(key).encrypt(b"ci-only-ig-token").decode()
+    with pytest.raises(ValueError, match="Invalid encrypted"):
+        store.save_instagram_connection(a, "ig-123", "rhm_teras", "gAAAAfake-token", 2000, 1000)
+    store.save_instagram_connection(a, "ig-123", "rhm_teras", encrypted, 2000, 1000)
     connection = store.get_instagram_connection(a)
     assert connection["username"] == "rhm_teras"
     assert "encrypted_token" not in connection

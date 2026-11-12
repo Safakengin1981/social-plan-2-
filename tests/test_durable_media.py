@@ -16,7 +16,8 @@ class FakeClient:
 
     def get_object(self, Bucket, Key):
         obj = self.objects[Key]
-        return {"Body": io.BytesIO(obj["Body"]), "ContentType": obj["ContentType"]}
+        return {"Body": io.BytesIO(obj["Body"]), "ContentType": obj["ContentType"],
+                "Metadata": obj["Metadata"], "ContentLength": len(obj["Body"])}
 
 
 def test_durable_media_private_and_tenant_scoped(monkeypatch):
@@ -35,3 +36,22 @@ def test_durable_media_private_and_tenant_scoped(monkeypatch):
         media.save(11, b"image", "text/html")
     with pytest.raises(ValueError):
         media.save(11, b"x" * (media.MAX_BYTES + 1), "image/jpeg")
+
+def test_durable_media_detects_corruption(monkeypatch):
+    fake = FakeClient()
+    monkeypatch.setattr(media, "client", lambda: fake)
+    monkeypatch.setattr(media, "bucket", lambda: "ci-private-bucket")
+    key = media.save(7, b"original", "image/png")
+    fake.objects[key]["Body"] = b"tampered"
+    with pytest.raises(ValueError, match="checksum mismatch"):
+        media.read(7, key)
+
+
+def test_durable_media_rejects_oversized_download(monkeypatch):
+    fake = FakeClient()
+    monkeypatch.setattr(media, "client", lambda: fake)
+    monkeypatch.setattr(media, "bucket", lambda: "ci-private-bucket")
+    key = media.save(7, b"small", "image/png")
+    fake.objects[key]["Body"] = b"x" * (media.MAX_BYTES + 1)
+    with pytest.raises(ValueError, match="exceeds"):
+        media.read(7, key)

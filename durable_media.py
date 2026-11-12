@@ -62,6 +62,8 @@ def read(business_id, key):
     if len(data) > MAX_BYTES:
         raise ValueError("Stored media exceeds the configured limit")
     checksum = obj.get("Metadata", {}).get("sha256")
-    if checksum and hashlib.sha256(data).hexdigest() != checksum:
+    if not checksum or not re.fullmatch(r"[a-f0-9]{64}", checksum):
+        raise ValueError("Stored media checksum missing or invalid")
+    if hashlib.sha256(data).hexdigest() != checksum:
         raise ValueError("Stored media checksum mismatch")
     return data, content_type

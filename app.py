@@ -8,6 +8,10 @@ from pydantic import BaseModel, Field
 
 BASE=os.path.dirname(__file__)
 DB=os.getenv('SOCIALPLAN_DB',os.path.join(BASE,'socialplan.sqlite3'))
+# Fail closed: a DATABASE_URL must never be silently ignored while SQLite is active.
+# PostgreSQL cutover requires adapting every endpoint, scheduler, media and OAuth path.
+if os.getenv('DATABASE_URL'):
+ raise RuntimeError('DATABASE_URL is set, but PostgreSQL cutover is not enabled. Refusing to write to SQLite silently.')
 logger=logging.getLogger('socialplan.scheduler')
 stop_scheduler=threading.Event()
 def sync_queue():

@@ -90,3 +90,90 @@ def change_post_status(business_id, user_id, post_id, action, now):
                  post_id, now),
             )
             return True
+
+
+def get_user_by_email(email):
+    with connection() as db:
+        return db.execute(
+            "SELECT id,business_id,email,salt,passhash,role FROM users WHERE email=%s",
+            (email,),
+        ).fetchone()
+
+
+def get_login_attempt(email_hash):
+    with connection() as db:
+        return db.execute(
+            "SELECT failures,first_attempt,locked_until FROM login_attempts WHERE email_hash=%s",
+            (email_hash,),
+        ).fetchone()
+
+
+def record_failed_login(email_hash, now, window_seconds=900, max_failures=5):
+    """Serialize per-email failure counting across concurrent requests."""
+    with connection() as db:
+        db.execute(
+            "INSERT INTO login_attempts(email_hash,failures,first_attempt,locked_until) "
+            "VALUES (%s,0,%s,0) ON CONFLICT(email_hash) DO NOTHING",
+            (email_hash, now),
+        )
+        row = db.execute(
+            "SELECT failures,first_attempt,locked_until FROM login_attempts "
+            "WHERE email_hash=%s FOR UPDATE", (email_hash,),
+        ).fetchone()
+        if row["locked_until"] > now:
+            return row["locked_until"]
+        within_window = now - row["first_attempt"] < window_seconds
+        failures = row["failures"] + 1 if within_window else 1
+        first_attempt = row["first_attempt"] if within_window else now
+        locked_until = now + window_seconds if failures >= max_failures else 0
+        db.execute(
+            "UPDATE login_attempts SET failures=%s,first_attempt=%s,locked_until=%s "
+            "WHERE email_hash=%s", (failures, first_attempt, locked_until, email_hash),
+        )
+        return locked_until
+
+
+def clear_login_attempts(email_hash):
+    with connection() as db:
+        db.execute("DELETE FROM login_attempts WHERE email_hash=%s", (email_hash,))
+
+
+def create_session(token_hash, user_id, expires):
+    with connection() as db:
+        db.execute(
+            "INSERT INTO sessions(token_hash,user_id,expires) VALUES (%s,%s,%s)",
+            (token_hash, user_id, expires),
+        )
+
+
+def get_session_user(token_hash, now):
+    with connection() as db:
+        return db.execute(
+            "SELECT users.id,users.business_id,users.email,users.role "
+            "FROM sessions JOIN users ON users.id=sessions.user_id "
+            "WHERE sessions.token_hash=%s AND sessions.expires>%s",
+            (token_hash, now),
+        ).fetchone()
+
+
+def revoke_session(token_hash):
+    with connection() as db:
+        db.execute("DELETE FROM sessions WHERE token_hash=%s", (token_hash,))
+
+
+def create_instagram_oauth_state(state_hash, business_id, user_id, expires, now):
+    with connection() as db:
+        db.execute("DELETE FROM instagram_oauth_states WHERE expires<%s", (now,))
+        db.execute(
+            "INSERT INTO instagram_oauth_states(state_hash,business_id,user_id,expires) "
+            "VALUES (%s,%s,%s,%s)", (state_hash, business_id, user_id, expires),
+        )
+
+
+def consume_instagram_oauth_state(state_hash, now):
+    """Single-use, atomic consumption prevents replay across workers."""
+    with connection() as db:
+        return db.execute(
+            "DELETE FROM instagram_oauth_states WHERE state_hash=%s AND expires>=%s "
+            "RETURNING business_id,user_id", (state_hash, now),
+        ).fetchone()

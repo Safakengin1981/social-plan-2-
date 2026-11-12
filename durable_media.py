@@ -55,4 +55,13 @@ def read(business_id, key):
         raise PermissionError("Media does not belong to this business")
     obj = client().get_object(Bucket=bucket(), Key=key)
     content_type = obj.get("ContentType", "application/octet-stream")
-    return obj["Body"].read(), content_type
+    # Never trust a remote ContentLength alone: enforce a hard bound on reads.
+    if int(obj.get("ContentLength", 0)) > MAX_BYTES:
+        raise ValueError("Stored media exceeds the configured limit")
+    data = obj["Body"].read(MAX_BYTES + 1)
+    if len(data) > MAX_BYTES:
+        raise ValueError("Stored media exceeds the configured limit")
+    checksum = obj.get("Metadata", {}).get("sha256")
+    if checksum and hashlib.sha256(data).hexdigest() != checksum:
+        raise ValueError("Stored media checksum mismatch")
+    return data, content_type

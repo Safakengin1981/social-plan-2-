@@ -26,3 +26,28 @@ def test_postgres_tenant_isolation_and_atomic_audit():
     with store.connection() as db:
         audit = db.execute("SELECT action FROM audit_events WHERE business_id=%s ORDER BY id", (a,)).fetchall()
         assert [row["action"] for row in audit] == ["post_created", "post_approved"]
+
+    # Session lifecycle: only hashed bearer tokens are persisted.
+    store.create_session("hashed-test-token", ua, 100)
+    assert store.get_session_user("hashed-test-token", 99)["business_id"] == a
+    assert store.get_session_user("hashed-test-token", 100) is None
+    store.revoke_session("hashed-test-token")
+    assert store.get_session_user("hashed-test-token", 99) is None
+
+    # Brute-force counters reset after the configured window.
+    key = "hashed-test-email"
+    assert store.record_failed_login(key, 1000) == 0
+    assert store.record_failed_login(key, 1001) == 0
+    assert store.record_failed_login(key, 1002) == 0
+    assert store.record_failed_login(key, 1003) == 0
+    assert store.record_failed_login(key, 1004) == 1904
+    assert store.record_failed_login(key, 1005) == 1904
+    store.clear_login_attempts(key)
+    assert store.get_login_attempt(key) is None
+
+    # OAuth state can be consumed once and must not outlive expiry.
+    store.create_instagram_oauth_state("hashed-oauth-state", a, ua, 1100, 1000)
+    assert store.consume_instagram_oauth_state("hashed-oauth-state", 1050)["business_id"] == a
+    assert store.consume_instagram_oauth_state("hashed-oauth-state", 1050) is None
+    store.create_instagram_oauth_state("expired-oauth-state", a, ua, 1000, 999)
+    assert store.consume_instagram_oauth_state("expired-oauth-state", 1001) is None

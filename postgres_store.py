@@ -177,3 +177,59 @@ def consume_instagram_oauth_state(state_hash, now):
             "DELETE FROM instagram_oauth_states WHERE state_hash=%s AND expires>=%s "
             "RETURNING business_id,user_id", (state_hash, now),
         ).fetchone()
+
+
+def upsert_publish_job(post_id, business_id, state, reason, updated_at):
+    """Queue state is durable and scoped to the owning business."""
+    if state not in ("queued", "ready", "blocked", "cancelled"):
+        raise ValueError("Unsupported queue state")
+    with connection() as db:
+        row = db.execute(
+            "SELECT id FROM posts WHERE id=%s AND business_id=%s",
+            (post_id, business_id),
+        ).fetchone()
+        if row is None:
+            return False
+        db.execute(
+            "INSERT INTO publish_jobs(post_id,business_id,state,reason,updated_at) "
+            "VALUES (%s,%s,%s,%s,%s) ON CONFLICT(post_id) DO UPDATE SET "
+            "state=EXCLUDED.state,reason=EXCLUDED.reason,updated_at=EXCLUDED.updated_at "
+            "WHERE publish_jobs.business_id=EXCLUDED.business_id",
+            (post_id, business_id, state, reason, updated_at),
+        )
+        return True
+
+
+def list_publish_jobs(business_id):
+    with connection() as db:
+        return db.execute(
+            "SELECT j.post_id,j.state,j.reason,j.updated_at,p.scheduled_at,p.caption "
+            "FROM publish_jobs j JOIN posts p ON p.id=j.post_id "
+            "WHERE j.business_id=%s AND p.business_id=%s ORDER BY p.scheduled_at",
+            (business_id, business_id),
+        ).fetchall()
+
+
+def get_instagram_connection(business_id):
+    """Return public connection status only; never expose encrypted tokens."""
+    with connection() as db:
+        return db.execute(
+            "SELECT instagram_id,username,expires,verified_at "
+            "FROM instagram_connections WHERE business_id=%s", (business_id,),
+        ).fetchone()
+
+
+def save_instagram_connection(business_id, instagram_id, username, encrypted_token, expires, verified_at):
+    """Only encrypted tokens may be persisted; caller must encrypt before invoking."""
+    if not encrypted_token.startswith("gAAAA"):
+        raise ValueError("Expected an encrypted Fernet token")
+    with connection() as db:
+        db.execute(
+            "INSERT INTO instagram_connections "
+            "(business_id,instagram_id,username,encrypted_token,expires,verified_at) "
+            "VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT(business_id) DO UPDATE SET "
+            "instagram_id=EXCLUDED.instagram_id,username=EXCLUDED.username,"
+            "encrypted_token=EXCLUDED.encrypted_token,expires=EXCLUDED.expires,"
+            "verified_at=EXCLUDED.verified_at",
+            (business_id, instagram_id, username, encrypted_token, expires, verified_at),
+        )

@@ -9,11 +9,13 @@ import secrets
 import time
 from datetime import datetime, timezone
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, File, UploadFile
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 import psycopg
 
 import postgres_store as store
+import durable_media
 
 app = FastAPI(title="SocialPlan PostgreSQL isolated API")
 
@@ -136,6 +138,33 @@ def cancel(post_id: int, user=Depends(auth)):
 def logout(authorization: str = Header(default=""), user=Depends(auth)):
     store.revoke_session(hashlib.sha256(authorization[7:].encode()).hexdigest())
     return {"ok": True}
+
+
+@app.post("/api/media")
+async def upload_media(file: UploadFile = File(...), user=Depends(auth)):
+    content_type = file.content_type or ""
+    if content_type not in durable_media.TYPES:
+        raise HTTPException(422, "Desteklenmeyen medya türü")
+    data = await file.read(durable_media.MAX_BYTES + 1)
+    if not data or len(data) > durable_media.MAX_BYTES:
+        raise HTTPException(413, "Medya dosyası boş veya 25 MB sınırını aşıyor")
+    try:
+        key = durable_media.save(user["business_id"], data, content_type)
+    except RuntimeError:
+        raise HTTPException(503, "Kalıcı medya depolaması yapılandırılmamış")
+    return {"media_key": key, "size": len(data), "content_type": content_type}
+
+
+@app.get("/api/media/{key:path}")
+def download_media(key: str, user=Depends(auth)):
+    try:
+        data, content_type = durable_media.read(user["business_id"], key)
+    except PermissionError:
+        raise HTTPException(404, "Medya bulunamadı")
+    except RuntimeError:
+        raise HTTPException(503, "Kalıcı medya depolaması yapılandırılmamış")
+    return Response(content=data, media_type=content_type,
+                    headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
 
 @app.get("/api/health")

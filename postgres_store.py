@@ -221,8 +221,16 @@ def get_instagram_connection(business_id):
 
 def save_instagram_connection(business_id, instagram_id, username, encrypted_token, expires, verified_at):
     """Only encrypted tokens may be persisted; caller must encrypt before invoking."""
-    if not encrypted_token.startswith("gAAAA"):
-        raise ValueError("Expected an encrypted Fernet token")
+    from cryptography.fernet import Fernet, InvalidToken
+    key = os.getenv("SOCIALPLAN_FERNET_KEY")
+    if not key:
+        raise RuntimeError("SOCIALPLAN_FERNET_KEY is required for Instagram token storage")
+    try:
+        plaintext = Fernet(key.encode()).decrypt(encrypted_token.encode())
+        if not plaintext:
+            raise ValueError("Empty Instagram token")
+    except (InvalidToken, ValueError) as exc:
+        raise ValueError("Invalid encrypted Instagram token") from exc
     with connection() as db:
         db.execute(
             "INSERT INTO instagram_connections "

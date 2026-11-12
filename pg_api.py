@@ -37,7 +37,8 @@ class Login(BaseModel):
 
 class Post(BaseModel):
     caption: str = Field(min_length=1, max_length=2200)
-    media_url: str = Field(min_length=8, max_length=2000)
+    media_url: str | None = Field(default=None, max_length=2000)
+    media_key: str | None = Field(default=None, max_length=2000)
     scheduled_at: str = Field(min_length=16, max_length=40)
 
 
@@ -105,12 +106,23 @@ def create_post(x: Post, user=Depends(auth)):
             raise ValueError()
     except ValueError:
         raise HTTPException(422, "Gelecekte, saat dilimi belirtilmiş geçerli tarih seçin")
-    # This isolated API has no durable media backend. Reject local media paths
-    # rather than accepting posts whose files would disappear on redeploy.
-    if not x.media_url.startswith("https://"):
-        raise HTTPException(422, "Kalıcı medya deposu kurulana kadar yalnızca HTTPS medya bağlantısı kullanılabilir")
+    # Exactly one source. Uploaded objects remain private and tenant-scoped.
+    if bool(x.media_key) == bool(x.media_url):
+        raise HTTPException(422, "Tek bir medya kaynağı seçin: media_key veya HTTPS media_url")
+    if x.media_key:
+        try:
+            durable_media.read(user["business_id"], x.media_key)
+        except (PermissionError, KeyError):
+            raise HTTPException(404, "Bu işletmeye ait medya bulunamadı")
+        except RuntimeError:
+            raise HTTPException(503, "Kalıcı medya depolaması yapılandırılmamış")
+        media_reference = "private-s3://" + x.media_key
+    else:
+        if not x.media_url.startswith("https://"):
+            raise HTTPException(422, "Yalnızca HTTPS medya bağlantısı kullanılabilir")
+        media_reference = x.media_url
     post_id = store.create_post(
-        user["business_id"], user["id"], x.caption, x.media_url,
+        user["business_id"], user["id"], x.caption, media_reference,
         x.scheduled_at, int(time.time()),
     )
     return {"id": post_id, "status": "draft"}

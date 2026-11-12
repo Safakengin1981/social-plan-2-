@@ -68,6 +68,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://socialplan_test:ci-only-password@localhost:5432/socialplan_ci
         run: |
+          psql -v ON_ERROR_STOP=1 -c "INSERT INTO businesses(name) VALUES ('socialplan-ci-restart-check')"
           pg_dump --format=custom --no-owner --no-acl --file=/tmp/socialplan-ci.dump socialplan_ci
           createdb socialplan_ci_restored
           pg_restore --no-owner --no-acl --exit-on-error --dbname=socialplan_ci_restored /tmp/socialplan-ci.dump

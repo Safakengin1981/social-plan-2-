@@ -13,6 +13,11 @@ def test_pg_api_two_tenants_login_posts_and_logout(monkeypatch):
                    "posts,sessions,login_attempts,users,businesses RESTART IDENTITY CASCADE")
 
     client = TestClient(app)
+    ui = client.get("/pg-test")
+    assert ui.status_code == 200
+    assert 'id="register"' in ui.text
+    assert 'id="upload"' in ui.text
+    assert 'id="create"' in ui.text
     password = "strong-test-password-123"
     for email in ("a@ci.example", "b@ci.example"):
         response = client.post("/api/register", json={

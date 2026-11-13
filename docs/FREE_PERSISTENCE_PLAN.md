@@ -49,3 +49,10 @@ Do not use the existing Render service's SQLite data or environment credentials.
 - Redeploy the isolated test service and verify post, session and media continuity.
 - Restore backup into a **different** disposable database and compare record counts.
 - Only deploy after explicit approval of the external provider connection and target isolated service; leave main and staging untouched.
+
+## Free provider candidates verified 2026-11-13
+- **Neon Free PostgreSQL**: 1 GB per project, 100 CU-hours/project/month; compute suspends after 5 minutes of inactivity. See https://neon.com/pricing and https://neon.com/docs/introduction/scale-to-zero. Verify quota and inactivity policies again before creating an account.
+- **Cloudflare R2 Standard**: 10 GB-month storage, 1 million Class A operations, 10 million Class B operations per month included. Usage above allowance may incur charges; activating R2 requires a billing subscription/checkout flow. See https://developers.cloudflare.com/r2/pricing/ and https://developers.cloudflare.com/r2/get-started/.
+- **Decision**: candidate only, not provisioned or connected. Do not enroll in any billable plan, enter payment details, or create resources without user approval.
+- **Security**: store Neon TLS connection URL and R2 private bucket keys only in secret environment variables; never expose them to the browser. Test cross-tenant access and checksum enforcement before deploying.
+- **Cost guardrail**: configure usage alerts or account-level spending controls where available; alerts alone do not prevent overages. If zero possible charges is a strict requirement, do not activate R2 until billing risk is explicitly accepted or a no-billing alternative is selected.

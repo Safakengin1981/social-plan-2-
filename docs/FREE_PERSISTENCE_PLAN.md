@@ -63,3 +63,10 @@ Do not use the existing Render service's SQLite data or environment credentials.
 3. Copy `config/pg-test.env.example` to a local private environment file. Never commit the filled version. Set variables in an isolated service only after a test deployment is approved.
 4. No Render deploy or account provisioning has been performed. Do not add these variables to the existing main/staging services.
 5. If the user declines R2 billing risk, keep media testing local/in CI and investigate an alternative with a hard zero-charge cap before provisioning.
+
+## Neon-only phase (user approved; R2 expressly deferred)
+- Create a **new, empty Neon Free project** only. Do not subscribe to Cloudflare R2, create an R2 bucket, or provision any billable resource.
+- No Neon connector is available to this assistant, so account creation must be completed by the user in Neon's dashboard. Do not send passwords, connection strings or tokens in chat.
+- Before any schema creation, run the read-only `scripts/check_neon_free.py` using a private `DATABASE_URL` with TLS. The script prints server version and table count, never credentials, and refuses URLs without TLS.
+- Only after the empty database is verified should the isolated PostgreSQL schema be applied. Never run migrations against main or staging.
+- Uploaded media remains disabled until a separate, explicitly approved storage service is configured. PostgreSQL record tests do not require R2.

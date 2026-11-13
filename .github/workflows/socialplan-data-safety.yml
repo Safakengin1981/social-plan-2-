@@ -75,6 +75,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -c "INSERT INTO businesses(name) VALUES ('socialplan-ci-backup-marker')"
           pg_dump --format=custom --no-owner --no-acl --file=/tmp/socialplan-ci.dump socialplan_ci
           createdb socialplan_ci_restored
-          pg_restore --no-owner --no-acl --exit-on-error --dbname=socialplan_ci_restored /tmp/socialplan-ci.dump
+          pg_restore --no-owner --no-acl --file=/tmp/socialplan-restore.sql /tmp/socialplan-ci.dump
+          sed -i '/^SET transaction_timeout =/d' /tmp/socialplan-restore.sql
+          psql -v ON_ERROR_STOP=1 -d socialplan_ci_restored -f /tmp/socialplan-restore.sql
           test "$(psql -v ON_ERROR_STOP=1 -d socialplan_ci_restored -tAc "SELECT count(*) FROM businesses WHERE name='socialplan-ci-backup-marker'")" = "1"
-          rm -f /tmp/socialplan-ci.dump
+          rm -f /tmp/socialplan-ci.dump /tmp/socialplan-restore.sql

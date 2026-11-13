@@ -56,3 +56,10 @@ Do not use the existing Render service's SQLite data or environment credentials.
 - **Decision**: candidate only, not provisioned or connected. Do not enroll in any billable plan, enter payment details, or create resources without user approval.
 - **Security**: store Neon TLS connection URL and R2 private bucket keys only in secret environment variables; never expose them to the browser. Test cross-tenant access and checksum enforcement before deploying.
 - **Cost guardrail**: configure usage alerts or account-level spending controls where available; alerts alone do not prevent overages. If zero possible charges is a strict requirement, do not activate R2 until billing risk is explicitly accepted or a no-billing alternative is selected.
+
+## Provider setup — approval required
+1. **Neon:** create a new Free project, not a branch of any production database. Confirm Free plan in dashboard; copy the TLS-enabled connection URL to a local secret manager, not Git or chat. Check that the connection uses `sslmode=require` or stronger verification.
+2. **R2:** stop before the R2 subscription checkout. Its free included usage does **not** mean hard-capped spending. Only proceed after explicit approval of possible usage charges. Choose Standard storage, a private test bucket, and credentials scoped to that bucket.
+3. Copy `config/pg-test.env.example` to a local private environment file. Never commit the filled version. Set variables in an isolated service only after a test deployment is approved.
+4. No Render deploy or account provisioning has been performed. Do not add these variables to the existing main/staging services.
+5. If the user declines R2 billing risk, keep media testing local/in CI and investigate an alternative with a hard zero-charge cap before provisioning.

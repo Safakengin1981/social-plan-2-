@@ -197,6 +197,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}
 </style></head><body>
 <h1>SocialPlan 5.8 — PostgreSQL test</h1>
 <p>Bu ekran yalnızca izole geliştirme API'si içindir. Instagram'a otomatik yayın yapmaz.</p>
+<section><h2>Yeni test işletmesi oluştur</h2><input id="business" placeholder="İşletme adı"><button id="register">İşletme oluştur</button><p>Şifre en az 12 karakter olmalıdır. Aynı e-posta ile tekrar kayıt yapılamaz.</p></section>
 <section><h2>Giriş</h2><input id="email" type="email" placeholder="E-posta">
 <input id="password" type="password" placeholder="Şifre">
 <button id="login">Giriş yap</button><button id="logout">Çıkış yap</button></section>
@@ -220,6 +221,13 @@ async function api(path, opts = {}) {
   return data;
 }
 function report(p) { out.textContent = typeof p === "string" ? p : JSON.stringify(p,null,2); }
+document.getElementById("register").onclick = async () => {
+ try { const r=await api("/api/register",{method:"POST",body:JSON.stringify({
+ business:document.getElementById("business").value,
+ email:document.getElementById("email").value,
+ password:document.getElementById("password").value})}); report(r); }
+ catch(e){report(e.message);}
+};
 document.getElementById("login").onclick = async () => {
  try { const r=await api("/api/login",{method:"POST",body:JSON.stringify({
  email:document.getElementById("email").value,password:document.getElementById("password").value})});

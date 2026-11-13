@@ -258,6 +258,13 @@ document.getElementById("refresh").onclick = async () => {
 </script></body></html>"""
 
 
+@app.get("/health")
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "database_engine": "postgresql", "instagram_publishing": "not_configured"}
+    """Verify that this isolated API can actually query Neon PostgreSQL."""
+    try:
+        with store.connection() as db:
+            db.execute("SELECT 1").fetchone()
+    except (psycopg.Error, OSError, RuntimeError):
+        raise HTTPException(status_code=503, detail="PostgreSQL baglantisi kullanilamiyor")
+    return {"status": "ok", "database_engine": "postgresql", "database": "connected", "instagram_publishing": "not_configured"}

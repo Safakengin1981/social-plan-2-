@@ -201,7 +201,10 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}
 <section><h2>Giriş</h2><input id="email" type="email" placeholder="E-posta">
 <input id="password" type="password" placeholder="Şifre">
 <button id="login">Giriş yap</button><button id="logout">Çıkış yap</button></section>
-<section><h2>Kalıcı medya yükleme</h2>
+<section><h2>Medya kaynağı (R2 gerektirmez)</h2>
+<input id="mediaurl" type="url" placeholder="Herkese açık HTTPS görsel/video bağlantısı">
+<p>Neon kayıt testi için HTTPS bağlantısı kullanın. Dosya yükleme yalnızca ayrı depolama yapılandırıldığında çalışır.</p>
+<h3>İsteğe bağlı dosya yükleme</h3>
 <input id="file" type="file" accept="image/jpeg,image/png,image/webp,video/mp4">
 <button id="upload">Dosyayı yükle</button><p id="media"></p></section>
 <section><h2>İçerik taslağı</h2><textarea id="caption" placeholder="Açıklama"></textarea>
@@ -245,11 +248,15 @@ document.getElementById("upload").onclick = async () => {
  report("Medya anahtarı oluşturuldu.");}catch(e){report(e.message);}
 };
 document.getElementById("create").onclick = async () => {
- try {if(!mediaKey) throw Error("Önce dosya yükleyin");
+ try {const mediaUrl=document.getElementById("mediaurl").value.trim();
+ if(!mediaKey && !mediaUrl) throw Error("HTTPS medya bağlantısı girin veya dosya yükleyin");
+ if(mediaUrl && !mediaUrl.startsWith("https://")) throw Error("Medya bağlantısı HTTPS olmalıdır");
+ if(mediaKey && mediaUrl) throw Error("Tek bir medya kaynağı seçin");
  const local=document.getElementById("scheduled").value;
  if(!local) throw Error("Yayın tarihi seçin");
  const r=await api("/api/posts",{method:"POST",body:JSON.stringify({
- caption:document.getElementById("caption").value,media_key:mediaKey,
+ caption:document.getElementById("caption").value,
+ ...(mediaKey ? {media_key:mediaKey} : {media_url:mediaUrl}),
  scheduled_at:new Date(local).toISOString()})});report(r);}catch(e){report(e.message);}
 };
 document.getElementById("refresh").onclick = async () => {

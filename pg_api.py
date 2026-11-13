@@ -271,7 +271,19 @@ def health():
     """Verify that this isolated API can actually query Neon PostgreSQL."""
     try:
         with store.connection() as db:
-            db.execute("SELECT 1").fetchone()
+            required_tables = (
+                "businesses", "users", "sessions", "login_attempts", "posts",
+                "audit_events", "publish_jobs", "instagram_oauth_states",
+                "instagram_connections",
+            )
+            found = db.execute(
+                "SELECT table_name FROM information_schema.tables "
+                "WHERE table_schema = current_schema() AND table_name = ANY(%s)",
+                (list(required_tables),),
+            ).fetchall()
+            present = {row["table_name"] for row in found}
+            if set(required_tables) != present:
+                raise HTTPException(status_code=503, detail="PostgreSQL tablo semasi eksik")
     except (psycopg.Error, OSError, RuntimeError):
         raise HTTPException(status_code=503, detail="PostgreSQL baglantisi kullanilamiyor")
     return {"status": "ok", "database_engine": "postgresql", "database": "connected", "instagram_publishing": "not_configured"}

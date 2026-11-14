@@ -363,7 +363,7 @@ def test_interface():
 input,textarea,button,select{font:inherit;padding:10px;margin:6px 0;width:100%;box-sizing:border-box}
 button{background:#154e69;color:white;border:0;border-radius:6px;cursor:pointer}
 [hidden]{display:none!important}section{border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0}
-pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}.post-card{border:1px solid #dce2e7;border-radius:10px;padding:16px;margin:12px 0;background:#fff}.post-card h3{margin:0 0 8px}.post-card p{overflow-wrap:anywhere}.post-card img{max-width:180px;max-height:140px;object-fit:cover;border-radius:6px}.post-actions{display:flex;gap:8px;flex-wrap:wrap}.post-actions button{width:auto;flex:1;min-width:140px}.post-card .meta{color:#52606d;font-size:14px}.post-card .state{font-weight:700}.post-card button:disabled{opacity:.5;cursor:not-allowed}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}.post-card{border:1px solid #dce2e7;border-radius:10px;padding:16px;margin:12px 0;background:#fff}.post-card h3{margin:0 0 8px}.post-card p{overflow-wrap:anywhere}.post-card img{max-width:180px;max-height:140px;object-fit:cover;border-radius:6px}.post-actions{display:flex;gap:8px;flex-wrap:wrap}.post-actions button{width:auto;flex:1;min-width:140px}.post-card .meta{color:#52606d;font-size:14px}.post-card .state{font-weight:700}.post-card button:disabled{opacity:.5;cursor:not-allowed}.dashboard{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.metric{border:1px solid #dce2e7;border-radius:8px;padding:12px;background:#f8fafb}.metric strong{display:block;font-size:25px}.calendar-list{list-style:none;padding:0}.calendar-list li{border-bottom:1px solid #e5e9ec;padding:10px 0}.calendar-list time{font-weight:600}.calendar-list small{display:block;color:#52606d}@media(min-width:650px){.dashboard{grid-template-columns:repeat(4,minmax(0,1fr))}}
 </style></head><body>
 <h1>SocialPlan 5.8 — PostgreSQL test</h1>
 <p>Bu ekran yalnızca izole geliştirme API'si içindir. Instagram'a otomatik yayın yapmaz.</p>
@@ -380,6 +380,8 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}
 <section><h2>İçerik taslağı</h2><textarea id="caption" placeholder="Açıklama"></textarea>
 <input id="scheduled" type="datetime-local"><button id="create">Taslak oluştur</button>
 <button id="refresh">Taslakları listele</button><h3>İçerik işlemleri</h3><label for="post-id">İçerik numarası (ID)</label><input id="post-id" type="number" min="1" step="1" placeholder="Örnek: 3"><button id="approve">İçeriği onayla</button><button id="cancel">İçeriği iptal et</button><p>Onay işlemi Instagram'da paylaşım yapmaz. İptal edilen içerik kaydı silinmez.</p></section>
+<section><h2>Yönetim özeti</h2><div class="dashboard" id="dashboard" aria-live="polite"><div class="metric">İçerik verileri giriş sonrasında yüklenir.</div></div></section>
+<section><h2>Yayın takvimi</h2><p>Planlanan içerikler, yayınlanmadan yalnızca takvim görünümünde listelenir.</p><label for="calendar-month">Ay seçin</label><input id="calendar-month" type="month"><ul id="calendar-list" class="calendar-list" aria-live="polite"></ul></section>
 <section><h2>İçerik yönetimi</h2><p>İçerikleriniz burada tarih, açıklama ve durumlarıyla görüntülenir.</p><label for="status-filter">Duruma göre filtrele</label><select id="status-filter"><option value="all">Tüm içerikler</option><option value="draft">Taslaklar</option><option value="approved">Onaylananlar</option><option value="cancelled">İptal edilenler</option></select><p id="post-count" aria-live="polite"></p><div id="post-list" aria-live="polite">İçerikleri görmek için giriş yapıp Taslakları listele seçeneğine basın.</div></section><details><summary>Teknik işlem çıktısı</summary><pre id="output" role="status"></pre></details>
 <script>
 let token = sessionStorage.getItem("socialplan_pg_test_token") || "", mediaKey = "", cachedPosts = [];
@@ -431,7 +433,7 @@ document.getElementById("login").onclick = async () => {
 };
 document.getElementById("logout").onclick = async () => {
  try {if(token) await api("/api/logout",{method:"POST"});} catch(e){report(e.message);}
- token=""; sessionStorage.removeItem("socialplan_pg_test_token"); mediaKey=""; cachedPosts=[]; updateAuthView(false); document.getElementById("post-list").textContent="İçerikleri görüntülemek için giriş yapın."; report("Oturum kapatıldı.");
+ token=""; sessionStorage.removeItem("socialplan_pg_test_token"); mediaKey=""; cachedPosts=[]; updateDashboard([]); updateCalendar([]); updateAuthView(false); document.getElementById("post-list").textContent="İçerikleri görüntülemek için giriş yapın."; report("Oturum kapatıldı.");
 };
 document.getElementById("upload").onclick = async () => {
  try {const file=document.getElementById("file").files[0]; if(!file) throw Error("Dosya seçin");
@@ -452,8 +454,32 @@ document.getElementById("create").onclick = async () => {
  ...(mediaKey ? {media_key:mediaKey} : {media_url:mediaUrl}),
  scheduled_at:new Date(local).toISOString()})});report(r);await loadPosts();}catch(e){report(e.message);}
 };
+function updateDashboard(posts) {
+ const counts={all:posts.length,draft:0,approved:0,cancelled:0};
+ for(const p of posts){if(Object.hasOwn(counts,p.status))counts[p.status]++;}
+ const root=document.getElementById("dashboard");root.replaceChildren();
+ for(const [label,key] of [["Toplam içerik","all"],["Taslak","draft"],["Onaylanan","approved"],["İptal edilen","cancelled"]]){
+  const card=document.createElement("div");card.className="metric";
+  const name=document.createElement("span");name.textContent=label;
+  const number=document.createElement("strong");number.textContent=counts[key];
+  card.append(name,number);root.append(card);
+ }
+}
+function updateCalendar(posts){
+ const month=document.getElementById("calendar-month").value;
+ const root=document.getElementById("calendar-list");root.replaceChildren();
+ const rows=posts.filter(p=>{const d=new Date(p.scheduled_at);return !Number.isNaN(d.getTime())&&[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0")].join("-")===month;})
+ .sort((a,b)=>new Date(a.scheduled_at)-new Date(b.scheduled_at));
+ if(!rows.length){const li=document.createElement("li");li.textContent="Seçilen ayda planlanmış içerik yok.";root.append(li);return;}
+ const names={draft:"Taslak",approved:"Onaylandı",cancelled:"İptal edildi"};
+ for(const p of rows){const li=document.createElement("li");const t=document.createElement("time");t.textContent=new Date(p.scheduled_at).toLocaleString("tr-TR");const d=document.createElement("small");d.textContent="#"+p.id+" · "+(names[p.status]||p.status)+" · "+p.caption;li.append(t,d);root.append(li);}
+}
+document.getElementById("calendar-month").value=new Date().getFullYear()+"-"+String(new Date().getMonth()+1).padStart(2,"0");
+document.getElementById("calendar-month").onchange=()=>updateCalendar(cachedPosts);
 function renderPosts(posts) {
  cachedPosts=posts;
+ updateDashboard(posts);
+ updateCalendar(posts);
  const filtered=posts.filter(p=>document.getElementById("status-filter").value==="all" || p.status===document.getElementById("status-filter").value);
  document.getElementById("post-count").textContent=filtered.length+" / "+posts.length+" içerik gösteriliyor";
  const list=document.getElementById("post-list");

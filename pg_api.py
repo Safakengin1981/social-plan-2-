@@ -230,16 +230,26 @@ def login(x: Login):
     email = x.email.strip().lower()
     email_hash = hashlib.sha256(email.encode()).hexdigest()
     now = int(time.time())
-    attempt = store.get_login_attempt(email_hash)
-    if attempt and attempt["locked_until"] > now:
-        raise HTTPException(429, "Çok fazla başarısız deneme. 15 dakika sonra tekrar deneyin.")
     user = store.get_user_by_email(email)
     salt = user["salt"] if user else "00" * 16
     expected = user["passhash"] if user else "00" * 32
     valid = hmac.compare_digest(expected, password_hash(x.password, salt)) and user is not None
     if not valid:
-        store.record_failed_login(email_hash, now)
+        attempt = store.get_login_attempt(email_hash)
+        if attempt and attempt["locked_until"] > now:
+            remaining = attempt["locked_until"] - now
+            raise HTTPException(
+                429, f"Çok fazla başarısız deneme. {((remaining + 59) // 60)} dakika sonra tekrar deneyin.",
+                headers={"Retry-After": str(remaining)},
+            )
+        locked_until = store.record_failed_login(email_hash, now)
+        if locked_until > now:
+            raise HTTPException(
+                429, "Çok fazla başarısız deneme. 15 dakika sonra tekrar deneyin.",
+                headers={"Retry-After": str(locked_until - now)},
+            )
         raise HTTPException(401, "Giriş bilgileri hatalı")
+    # A correct password can recover a locked account; failed attempts remain throttled.
     store.clear_login_attempts(email_hash)
     token = secrets.token_urlsafe(32)
     store.create_session(hashlib.sha256(token.encode()).hexdigest(), user["id"], now + 86400)

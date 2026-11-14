@@ -148,11 +148,21 @@ def run_workflow_probe():
             raise RuntimeError("WORKFLOW_PROBE tenant isolation write failed")
         # Durable publishing queue is only a dry-run: no Instagram publishing.
         now = int(time.time())
-        if not store.upsert_publish_job(
-            outsider_post["id"], outsider_business_id, "blocked",
-            "isolation-test-no-instagram", now,
-        ):
-            raise RuntimeError("WORKFLOW_PROBE queue write failed")
+        previous_jobs = store.list_publish_jobs(outsider_business_id)
+        existing_job = next(
+            (j for j in previous_jobs if j["post_id"] == outsider_post["id"]), None
+        )
+        if existing_job is None:
+            if not store.upsert_publish_job(
+                outsider_post["id"], outsider_business_id, "blocked",
+                "isolation-test-no-instagram", now,
+            ):
+                raise RuntimeError("WORKFLOW_PROBE queue write failed")
+            logger.warning("WORKFLOW_PROBE publishing queue marker initialized")
+        elif existing_job["state"] == "blocked" and existing_job["reason"] == "isolation-test-no-instagram":
+            logger.warning("WORKFLOW_PROBE publishing queue marker recovered from Neon")
+        else:
+            raise RuntimeError("WORKFLOW_PROBE persisted queue marker changed unexpectedly")
         if store.upsert_publish_job(
             outsider_post["id"], business_id, "ready", "cross-tenant-attempt", now,
         ):

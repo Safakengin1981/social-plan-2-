@@ -4,6 +4,8 @@ This is NOT the production entrypoint. No Instagram publishing or media uploads.
 Start only in a disposable test environment with DATABASE_URL set.
 """
 import hashlib
+import logging
+from contextlib import asynccontextmanager
 import hmac
 import secrets
 import time
@@ -17,7 +19,36 @@ import psycopg
 import postgres_store as store
 import durable_media
 
-app = FastAPI(title="SocialPlan PostgreSQL isolated API")
+logger = logging.getLogger("socialplan.persistence_probe")
+PROBE_KEY = hashlib.sha256(b"socialplan-neon-isolated-persistence-probe-v1").hexdigest()
+
+
+@asynccontextmanager
+async def lifespan(app):
+    # Isolated test only: an idempotent marker survives process restarts/deploys.
+    # No existing business, user, post, or session rows are modified.
+    with store.connection() as db:
+        existing = db.execute(
+            "SELECT first_attempt FROM login_attempts WHERE email_hash=%s",
+            (PROBE_KEY,),
+        ).fetchone()
+        if existing is None:
+            now = int(time.time())
+            db.execute(
+                "INSERT INTO login_attempts(email_hash,failures,first_attempt,locked_until) "
+                "VALUES (%s,0,%s,0) ON CONFLICT(email_hash) DO NOTHING",
+                (PROBE_KEY, now),
+            )
+            logger.warning("PERSISTENCE_PROBE initialized marker in isolated Neon database")
+        else:
+            logger.warning(
+                "PERSISTENCE_PROBE existing marker recovered from Neon; created_at=%s",
+                existing["first_attempt"],
+            )
+    yield
+
+
+app = FastAPI(title="SocialPlan PostgreSQL isolated API", lifespan=lifespan)
 
 
 def password_hash(password, salt):

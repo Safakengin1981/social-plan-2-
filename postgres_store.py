@@ -60,6 +60,24 @@ def create_post(business_id, author_id, caption, media_url, scheduled_at, create
             return post_id
 
 
+def update_draft(business_id, user_id, post_id, caption, media_url, scheduled_at, now):
+    """Update only an owned draft and record the edit atomically."""
+    with connection() as db:
+        row = db.execute(
+            "UPDATE posts SET caption=%s,media_url=%s,scheduled_at=%s "
+            "WHERE id=%s AND business_id=%s AND status='draft' RETURNING id",
+            (caption, media_url, scheduled_at, post_id, business_id),
+        ).fetchone()
+        if row is None:
+            return False
+        db.execute(
+            "INSERT INTO audit_events(business_id,user_id,action,post_id,created_at) "
+            "VALUES (%s,%s,'post_updated',%s,%s)",
+            (business_id, user_id, post_id, now),
+        )
+        return True
+
+
 def list_posts(business_id):
     with connection() as db:
         return db.execute(

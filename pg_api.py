@@ -45,6 +45,7 @@ async def lifespan(app):
                 "PERSISTENCE_PROBE existing marker recovered from Neon; created_at=%s",
                 existing["first_attempt"],
             )
+    run_workflow_probe()
     yield
 
 
@@ -53,6 +54,66 @@ app = FastAPI(title="SocialPlan PostgreSQL isolated API", lifespan=lifespan)
 
 def password_hash(password, salt):
     return hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt), 310000).hex()
+
+
+def run_workflow_probe():
+    """One synthetic tenant in the isolated Neon test DB; no external publishing."""
+    email = "socialplan-workflow-probe-v1@example.invalid"
+    caption = "SOCIALPLAN_WORKFLOW_PROBE_V1"
+    user = store.get_user_by_email(email)
+    if user is None:
+        password = secrets.token_urlsafe(32)
+        salt = secrets.token_hex(16)
+        business_id = store.register_business(
+            "SocialPlan isolated workflow probe", email, salt,
+            password_hash(password, salt),
+        )
+        user = store.get_user_by_email(email)
+        if not user or user["business_id"] != business_id:
+            raise RuntimeError("WORKFLOW_PROBE registration verification failed")
+        if not hmac.compare_digest(user["passhash"], password_hash(password, user["salt"])):
+            raise RuntimeError("WORKFLOW_PROBE password verification failed")
+        token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        now = int(time.time())
+        store.create_session(token_hash, user["id"], now + 300)
+        authenticated = store.get_session_user(token_hash, now)
+        if not authenticated or authenticated["business_id"] != business_id:
+            raise RuntimeError("WORKFLOW_PROBE session verification failed")
+        post_id = store.create_post(
+            business_id, user["id"], caption,
+            "https://example.com/socialplan-workflow-probe.jpg",
+            "2035-01-01T12:00:00+00:00", now,
+        )
+        if not any(p["id"] == post_id and p["status"] == "draft"
+                   for p in store.list_posts(business_id)):
+            raise RuntimeError("WORKFLOW_PROBE draft verification failed")
+        if not store.change_post_status(business_id, user["id"], post_id, "approve", now):
+            raise RuntimeError("WORKFLOW_PROBE approval failed")
+        if not store.change_post_status(business_id, user["id"], post_id, "cancel", now):
+            raise RuntimeError("WORKFLOW_PROBE cancellation failed")
+        store.revoke_session(token_hash)
+        if store.get_session_user(token_hash, now):
+            raise RuntimeError("WORKFLOW_PROBE logout failed")
+        logger.warning("WORKFLOW_PROBE initialized: registration, login, draft, approval, cancellation, logout verified")
+    else:
+        business_id = user["business_id"]
+        logger.warning("WORKFLOW_PROBE existing synthetic tenant recovered")
+    with store.connection() as db:
+        row = db.execute(
+            "SELECT p.id,p.status,p.caption FROM posts p "
+            "WHERE p.business_id=%s AND p.caption=%s ORDER BY p.id LIMIT 1",
+            (business_id, caption),
+        ).fetchone()
+        if not row or row["status"] != "cancelled":
+            raise RuntimeError("WORKFLOW_PROBE persisted post missing or wrong status")
+        actions = db.execute(
+            "SELECT action FROM audit_events WHERE business_id=%s AND post_id=%s",
+            (business_id, row["id"]),
+        ).fetchall()
+        if {a["action"] for a in actions} != {"post_created", "post_approved", "post_cancelled"}:
+            raise RuntimeError("WORKFLOW_PROBE audit trail missing")
+    logger.warning("WORKFLOW_PROBE persisted post and audit trail verified")
 
 
 class Registration(BaseModel):

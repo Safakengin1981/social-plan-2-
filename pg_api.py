@@ -357,10 +357,10 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}
 </style></head><body>
 <h1>SocialPlan 5.8 — PostgreSQL test</h1>
 <p>Bu ekran yalnızca izole geliştirme API'si içindir. Instagram'a otomatik yayın yapmaz.</p>
-<section><h2>Yeni test işletmesi oluştur</h2><input id="business" placeholder="İşletme adı"><button id="register">İşletme oluştur</button><p>Şifre en az 12 karakter olmalıdır. Aynı e-posta ile tekrar kayıt yapılamaz.</p></section>
-<section><h2>Giriş</h2><input id="email" type="email" placeholder="E-posta">
+<section><h2>1. Yeni test işletmesi oluştur</h2><label>İşletme adı</label><input id="business" placeholder="Örnek Test İşletmesi"><label>E-posta adresi</label><input id="register-email" type="email" autocomplete="email" placeholder="ornek@eposta.com"><label>Test şifresi (en az 12 karakter)</label><input id="register-password" type="password" autocomplete="new-password" placeholder="En az 12 karakter"><button id="register">İşletme oluştur</button><p id="register-status" role="status" aria-live="polite"></p><p>Aynı e-posta daha önce kaydedildiyse yeniden işletme oluşturmayın; aşağıdan giriş yapın.</p></section>
+<section><h2>2. Giriş</h2><input id="email" type="email" autocomplete="email" placeholder="Kayıtlı e-posta">
 <input id="password" type="password" placeholder="Şifre">
-<button id="login">Giriş yap</button><button id="logout">Çıkış yap</button></section>
+<button id="login">Giriş yap</button><button id="logout">Çıkış yap</button><p id="login-status" role="status" aria-live="polite"></p></section>
 <section><h2>Medya kaynağı (R2 gerektirmez)</h2>
 <input id="mediaurl" type="url" placeholder="Herkese açık HTTPS görsel/video bağlantısı">
 <p>Neon kayıt testi için HTTPS bağlantısı kullanın. Dosya yükleme yalnızca ayrı depolama yapılandırıldığında çalışır.</p>
@@ -380,21 +380,41 @@ async function api(path, opts = {}) {
   if (opts.body && !(opts.body instanceof FormData)) headers["Content-Type"] = "application/json";
   const response = await fetch(path, {...opts, headers});
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.detail || "İstek başarısız: " + response.status);
+  if (!response.ok) { const detail = Array.isArray(data.detail) ? data.detail.map(x => (x.loc || []).slice(-1).join("") + ": " + x.msg).join("; ") : data.detail; throw new Error(detail || "İstek başarısız: " + response.status); }
   return data;
 }
 function report(p) { out.textContent = typeof p === "string" ? p : JSON.stringify(p,null,2); }
 document.getElementById("register").onclick = async () => {
- try { const r=await api("/api/register",{method:"POST",body:JSON.stringify({
- business:document.getElementById("business").value,
- email:document.getElementById("email").value,
- password:document.getElementById("password").value})}); report(r); }
- catch(e){report(e.message);}
+ const status=document.getElementById("register-status");
+ const business=document.getElementById("business").value.trim();
+ const email=document.getElementById("register-email").value.trim();
+ const password=document.getElementById("register-password").value;
+ status.textContent=""; 
+ if(business.length<2){status.textContent="İşletme adı en az 2 karakter olmalıdır.";return;}
+ if(!email.includes("@")){status.textContent="Geçerli bir e-posta girin.";return;}
+ if(password.length<12){status.textContent="Şifre en az 12 karakter olmalıdır.";return;}
+ try {
+  const result=await api("/api/register",{method:"POST",body:JSON.stringify({business,email,password})});
+  status.textContent="İşletme oluşturuldu. Şimdi aşağıdaki Giriş bölümünden oturum açabilirsiniz.";
+  document.getElementById("email").value=email;
+  document.getElementById("password").value=password;
+  report(result);
+ } catch(e) {
+  status.textContent=e.message.includes("zaten kayıtlı")?"Bu e-posta zaten kayıtlı. Yeniden işletme oluşturmak yerine aşağıdan giriş yapın.":e.message;
+  report(status.textContent);
+ }
 };
 document.getElementById("login").onclick = async () => {
- try { const r=await api("/api/login",{method:"POST",body:JSON.stringify({
- email:document.getElementById("email").value,password:document.getElementById("password").value})});
- token=r.token; report("Giriş başarılı. Rol: "+r.role); } catch(e){report(e.message);}
+ const status=document.getElementById("login-status");
+ status.textContent="";
+ try {
+  const r=await api("/api/login",{method:"POST",body:JSON.stringify({
+   email:document.getElementById("email").value,password:document.getElementById("password").value})});
+  token=r.token;
+  const profile=await api("/api/me");
+  status.textContent="Giriş başarılı: "+profile.business+" ("+profile.email+")";
+  report(status.textContent);
+ } catch(e){status.textContent=e.message;report(e.message);}
 };
 document.getElementById("logout").onclick = async () => {
  try {if(token) await api("/api/logout",{method:"POST"});} catch(e){report(e.message);}

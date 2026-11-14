@@ -363,7 +363,7 @@ def test_interface():
 input,textarea,button{font:inherit;padding:10px;margin:6px 0;width:100%;box-sizing:border-box}
 button{background:#154e69;color:white;border:0;border-radius:6px;cursor:pointer}
 section{border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0}
-pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}.post-card{border:1px solid #dce2e7;border-radius:10px;padding:16px;margin:12px 0;background:#fff}.post-card h3{margin:0 0 8px}.post-card p{overflow-wrap:anywhere}.post-card img{max-width:180px;max-height:140px;object-fit:cover;border-radius:6px}.post-actions{display:flex;gap:8px;flex-wrap:wrap}.post-actions button{width:auto;flex:1;min-width:140px}.post-card .meta{color:#52606d;font-size:14px}.post-card .state{font-weight:700}.post-card button:disabled{opacity:.5;cursor:not-allowed}
 </style></head><body>
 <h1>SocialPlan 5.8 — PostgreSQL test</h1>
 <p>Bu ekran yalnızca izole geliştirme API'si içindir. Instagram'a otomatik yayın yapmaz.</p>
@@ -380,7 +380,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}
 <section><h2>İçerik taslağı</h2><textarea id="caption" placeholder="Açıklama"></textarea>
 <input id="scheduled" type="datetime-local"><button id="create">Taslak oluştur</button>
 <button id="refresh">Taslakları listele</button><h3>İçerik işlemleri</h3><label for="post-id">İçerik numarası (ID)</label><input id="post-id" type="number" min="1" step="1" placeholder="Örnek: 3"><button id="approve">İçeriği onayla</button><button id="cancel">İçeriği iptal et</button><p>Onay işlemi Instagram'da paylaşım yapmaz. İptal edilen içerik kaydı silinmez.</p></section>
-<pre id="output" role="status"></pre>
+<section><h2>İçerik yönetimi</h2><p>İçerikleriniz burada tarih, açıklama ve durumlarıyla görüntülenir.</p><div id="post-list" aria-live="polite">İçerikleri görmek için giriş yapıp Taslakları listele seçeneğine basın.</div></section><details><summary>Teknik işlem çıktısı</summary><pre id="output" role="status"></pre></details>
 <script>
 let token = sessionStorage.getItem("socialplan_pg_test_token") || "", mediaKey = "";
 const out = document.getElementById("output");
@@ -425,6 +425,7 @@ document.getElementById("login").onclick = async () => {
   const profile=await api("/api/me");
   status.textContent="Giriş başarılı: "+profile.business+" ("+profile.email+")";
   report(status.textContent);
+  await loadPosts();
  } catch(e){status.textContent=e.message;report(e.message);}
 };
 document.getElementById("logout").onclick = async () => {
@@ -448,8 +449,39 @@ document.getElementById("create").onclick = async () => {
  const r=await api("/api/posts",{method:"POST",body:JSON.stringify({
  caption:document.getElementById("caption").value,
  ...(mediaKey ? {media_key:mediaKey} : {media_url:mediaUrl}),
- scheduled_at:new Date(local).toISOString()})});report(r);}catch(e){report(e.message);}
+ scheduled_at:new Date(local).toISOString()})});report(r);await loadPosts();}catch(e){report(e.message);}
 };
+function renderPosts(posts) {
+ const list=document.getElementById("post-list");
+ list.replaceChildren();
+ if(!posts.length){list.textContent="Henüz kayıtlı içerik bulunmuyor.";return;}
+ const statusText={draft:"Taslak",approved:"Onaylandı",cancelled:"İptal edildi"};
+ for(const post of posts) {
+  const card=document.createElement("article");card.className="post-card";
+  const heading=document.createElement("h3");heading.textContent="İçerik #"+post.id;card.append(heading);
+  const caption=document.createElement("p");caption.textContent=post.caption;card.append(caption);
+  const date=document.createElement("p");date.className="meta";
+  const parsed=new Date(post.scheduled_at);
+  date.textContent="Planlanan: "+(Number.isNaN(parsed.getTime())?post.scheduled_at:parsed.toLocaleString("tr-TR"));card.append(date);
+  const state=document.createElement("p");state.className="state";state.textContent="Durum: "+(statusText[post.status]||post.status);card.append(state);
+  const media=document.createElement("p");media.className="meta";
+  media.textContent="Medya: "+(post.media_url||"Belirtilmemiş");card.append(media);
+  if(post.media_url && /^https:\/\//i.test(post.media_url) && /\.(png|jpe?g|webp)(\?|$)/i.test(post.media_url)){
+   const img=document.createElement("img");img.src=post.media_url;img.alt="İçerik görseli";img.loading="lazy";img.referrerPolicy="no-referrer";card.append(img);
+  }
+  const actions=document.createElement("div");actions.className="post-actions";
+  for(const [action,label,enabled] of [["approve","Onayla",post.status==="draft"],["cancel","İptal et",post.status!=="cancelled"]]){
+   const btn=document.createElement("button");btn.textContent=label;btn.disabled=!enabled;
+   btn.onclick=()=>{document.getElementById("post-id").value=post.id;changeStatus(action);};
+   actions.append(btn);
+  }
+  card.append(actions);list.append(card);
+ }
+}
+async function loadPosts(){
+ if(!token){document.getElementById("post-list").textContent="Önce giriş yapın.";return;}
+ const posts=await api("/api/posts");renderPosts(posts);report(posts);
+}
 async function changeStatus(action) {
  const id=Number(document.getElementById("post-id").value);
  if(!Number.isSafeInteger(id)||id<=0){report("Geçerli bir içerik numarası (ID) girin.");return;}
@@ -460,6 +492,7 @@ async function changeStatus(action) {
   const result=await api("/api/posts/"+id+"/"+action,{method:"POST"});
   const all=await api("/api/posts");
   report({message:action==="approve"?"İçerik onaylandı. Instagram paylaşımı yapılmadı.":"İçerik iptal edildi.",result,posts:all});
+  renderPosts(all);
  } catch(e){report(e.message);}
 }
 document.getElementById("approve").onclick=()=>changeStatus("approve");
@@ -470,6 +503,7 @@ async function restoreSession() {
   const profile=await api("/api/me");
   document.getElementById("login-status").textContent="Oturum devam ediyor: "+profile.business+" ("+profile.email+")";
   report("Oturum geri yüklendi. İçeriklerinizi listeleyebilirsiniz.");
+  await loadPosts();
  } catch(e) {
   token=""; sessionStorage.removeItem("socialplan_pg_test_token");
   document.getElementById("login-status").textContent="Oturum süresi doldu. Yeniden giriş yapın.";
@@ -477,7 +511,7 @@ async function restoreSession() {
 }
 restoreSession();
 document.getElementById("refresh").onclick = async () => {
- try{report(await api("/api/posts"));}catch(e){report(e.message);}
+ try{await loadPosts();}catch(e){report(e.message);}
 };
 </script></body></html>"""
 

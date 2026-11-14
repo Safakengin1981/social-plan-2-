@@ -300,6 +300,27 @@ def create_post(x: Post, user=Depends(auth)):
     return {"id": post_id, "status": "draft"}
 
 
+@app.put("/api/posts/{post_id}")
+def edit_draft(post_id: int, x: Post, user=Depends(auth)):
+    if user["role"] != "admin":
+        raise HTTPException(403, "Yönetici yetkisi gerekli")
+    try:
+        when = datetime.fromisoformat(x.scheduled_at.replace("Z", "+00:00"))
+        if when.tzinfo is None or when.astimezone(timezone.utc) <= datetime.now(timezone.utc):
+            raise ValueError()
+    except ValueError:
+        raise HTTPException(422, "Gelecekte, saat dilimi belirtilmiş geçerli tarih seçin")
+    if not x.media_url or x.media_key or not x.media_url.startswith("https://"):
+        raise HTTPException(422, "Düzenleme için HTTPS medya bağlantısı gereklidir")
+    changed = store.update_draft(
+        user["business_id"], user["id"], post_id,
+        x.caption, x.media_url, x.scheduled_at, int(time.time()),
+    )
+    if not changed:
+        raise HTTPException(404, "Düzenlenebilir taslak bulunamadı")
+    return {"id": post_id, "status": "draft", "message": "Taslak güncellendi"}
+
+
 @app.post("/api/posts/{post_id}/approve")
 def approve(post_id: int, user=Depends(auth)):
     if user["role"] != "admin":
@@ -380,6 +401,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}
 <section><h2>İçerik taslağı</h2><textarea id="caption" placeholder="Açıklama"></textarea>
 <input id="scheduled" type="datetime-local"><button id="create">Taslak oluştur</button>
 <button id="refresh">Taslakları listele</button><h3>İçerik işlemleri</h3><label for="post-id">İçerik numarası (ID)</label><input id="post-id" type="number" min="1" step="1" placeholder="Örnek: 3"><button id="approve">İçeriği onayla</button><button id="cancel">İçeriği iptal et</button><p>Onay işlemi Instagram'da paylaşım yapmaz. İptal edilen içerik kaydı silinmez.</p></section>
+<section id="edit-section" hidden><h2>Taslağı düzenle</h2><p>Yalnızca taslak durumundaki içerikler düzenlenebilir.</p><label for="edit-id">İçerik ID</label><input id="edit-id" readonly><label for="edit-caption">Açıklama</label><textarea id="edit-caption"></textarea><label for="edit-media">HTTPS medya bağlantısı</label><input id="edit-media" type="url"><label for="edit-date">Planlanan tarih</label><input id="edit-date" type="datetime-local"><button id="save-edit">Değişiklikleri kaydet</button><button id="close-edit" type="button">Vazgeç</button><p id="edit-status" role="status"></p></section>
 <section><h2>Yönetim özeti</h2><div class="dashboard" id="dashboard" aria-live="polite"><div class="metric">İçerik verileri giriş sonrasında yüklenir.</div></div></section>
 <section><h2>Yayın takvimi</h2><p>Planlanan içerikler, yayınlanmadan yalnızca takvim görünümünde listelenir.</p><label for="calendar-month">Ay seçin</label><input id="calendar-month" type="month"><ul id="calendar-list" class="calendar-list" aria-live="polite"></ul></section>
 <section><h2>İçerik yönetimi</h2><p>İçerikleriniz burada tarih, açıklama ve durumlarıyla görüntülenir.</p><label for="status-filter">Duruma göre filtrele</label><select id="status-filter"><option value="all">Tüm içerikler</option><option value="draft">Taslaklar</option><option value="approved">Onaylananlar</option><option value="cancelled">İptal edilenler</option></select><p id="post-count" aria-live="polite"></p><div id="post-list" aria-live="polite">İçerikleri görmek için giriş yapıp Taslakları listele seçeneğine basın.</div></section><details><summary>Teknik işlem çıktısı</summary><pre id="output" role="status"></pre></details>
@@ -433,7 +455,7 @@ document.getElementById("login").onclick = async () => {
 };
 document.getElementById("logout").onclick = async () => {
  try {if(token) await api("/api/logout",{method:"POST"});} catch(e){report(e.message);}
- token=""; sessionStorage.removeItem("socialplan_pg_test_token"); mediaKey=""; cachedPosts=[]; updateDashboard([]); updateCalendar([]); updateAuthView(false); document.getElementById("post-list").textContent="İçerikleri görüntülemek için giriş yapın."; report("Oturum kapatıldı.");
+ token=""; sessionStorage.removeItem("socialplan_pg_test_token"); mediaKey=""; cachedPosts=[]; document.getElementById("edit-section").hidden=true; updateDashboard([]); updateCalendar([]); updateAuthView(false); document.getElementById("post-list").textContent="İçerikleri görüntülemek için giriş yapın."; report("Oturum kapatıldı.");
 };
 document.getElementById("upload").onclick = async () => {
  try {const file=document.getElementById("file").files[0]; if(!file) throw Error("Dosya seçin");
@@ -453,6 +475,37 @@ document.getElementById("create").onclick = async () => {
  caption:document.getElementById("caption").value,
  ...(mediaKey ? {media_key:mediaKey} : {media_url:mediaUrl}),
  scheduled_at:new Date(local).toISOString()})});report(r);await loadPosts();}catch(e){report(e.message);}
+};
+function openDraftEditor(post){
+ if(post.status!=="draft"){report("Yalnızca taslaklar düzenlenebilir.");return;}
+ if(!post.media_url || !post.media_url.startsWith("https://")){report("Bu içerik HTTPS medya bağlantısıyla düzenlenemiyor.");return;}
+ document.getElementById("edit-id").value=post.id;
+ document.getElementById("edit-caption").value=post.caption;
+ document.getElementById("edit-media").value=post.media_url;
+ const date=new Date(post.scheduled_at);
+ if(Number.isNaN(date.getTime())){report("İçeriğin yayın tarihi geçersiz.");return;}
+ const local=new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16);
+ document.getElementById("edit-date").value=local;
+ document.getElementById("edit-status").textContent="";
+ document.getElementById("edit-section").hidden=false;
+ document.getElementById("edit-section").scrollIntoView({behavior:"smooth",block:"start"});
+}
+document.getElementById("close-edit").onclick=()=>{document.getElementById("edit-section").hidden=true;};
+document.getElementById("save-edit").onclick=async()=>{
+ const id=Number(document.getElementById("edit-id").value);
+ const caption=document.getElementById("edit-caption").value.trim();
+ const media_url=document.getElementById("edit-media").value.trim();
+ const local=document.getElementById("edit-date").value;
+ const status=document.getElementById("edit-status");
+ if(!caption || !media_url.startsWith("https://") || !local){status.textContent="Açıklama, HTTPS bağlantısı ve yayın tarihi gereklidir.";return;}
+ const date=new Date(local);
+ if(Number.isNaN(date.getTime()) || date<=new Date()){status.textContent="Gelecekte bir yayın tarihi seçin.";return;}
+ try{
+  await api("/api/posts/"+id,{method:"PUT",body:JSON.stringify({caption,media_url,scheduled_at:date.toISOString()})});
+  status.textContent="Taslak güncellendi.";
+  await loadPosts();
+  document.getElementById("edit-section").hidden=true;
+ }catch(e){status.textContent=e.message;report(e.message);}
 };
 function updateDashboard(posts) {
  const counts={all:posts.length,draft:0,approved:0,cancelled:0};
@@ -504,6 +557,9 @@ function renderPosts(posts) {
    const btn=document.createElement("button");btn.textContent=label;btn.disabled=!enabled;
    btn.onclick=()=>{document.getElementById("post-id").value=post.id;changeStatus(action);};
    actions.append(btn);
+  }
+  if(post.status==="draft" && post.media_url && post.media_url.startsWith("https://")){
+   const edit=document.createElement("button");edit.textContent="Düzenle";edit.onclick=()=>openDraftEditor(post);actions.append(edit);
   }
   card.append(actions);list.append(card);
  }

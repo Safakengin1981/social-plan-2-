@@ -379,7 +379,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}
 <button id="upload">Dosyayı yükle</button><p id="media"></p></section>
 <section><h2>İçerik taslağı</h2><textarea id="caption" placeholder="Açıklama"></textarea>
 <input id="scheduled" type="datetime-local"><button id="create">Taslak oluştur</button>
-<button id="refresh">Taslakları listele</button></section>
+<button id="refresh">Taslakları listele</button><h3>İçerik işlemleri</h3><label for="post-id">İçerik numarası (ID)</label><input id="post-id" type="number" min="1" step="1" placeholder="Örnek: 3"><button id="approve">İçeriği onayla</button><button id="cancel">İçeriği iptal et</button><p>Onay işlemi Instagram'da paylaşım yapmaz. İptal edilen içerik kaydı silinmez.</p></section>
 <pre id="output" role="status"></pre>
 <script>
 let token = "", mediaKey = "";
@@ -449,6 +449,20 @@ document.getElementById("create").onclick = async () => {
  ...(mediaKey ? {media_key:mediaKey} : {media_url:mediaUrl}),
  scheduled_at:new Date(local).toISOString()})});report(r);}catch(e){report(e.message);}
 };
+async function changeStatus(action) {
+ const id=Number(document.getElementById("post-id").value);
+ if(!Number.isSafeInteger(id)||id<=0){report("Geçerli bir içerik numarası (ID) girin.");return;}
+ if(!token){report("Önce giriş yapın.");return;}
+ const question=action==="approve"?"Bu taslağı onaylamak istiyor musunuz?":"Bu içeriği iptal etmek istiyor musunuz?";
+ if(!confirm(question)) return;
+ try {
+  const result=await api("/api/posts/"+id+"/"+action,{method:"POST"});
+  const all=await api("/api/posts");
+  report({message:action==="approve"?"İçerik onaylandı. Instagram paylaşımı yapılmadı.":"İçerik iptal edildi.",result,posts:all});
+ } catch(e){report(e.message);}
+}
+document.getElementById("approve").onclick=()=>changeStatus("approve");
+document.getElementById("cancel").onclick=()=>changeStatus("cancel");
 document.getElementById("refresh").onclick = async () => {
  try{report(await api("/api/posts"));}catch(e){report(e.message);}
 };

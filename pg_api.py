@@ -384,7 +384,7 @@ def test_interface():
 input,textarea,button,select{font:inherit;padding:10px;margin:6px 0;width:100%;box-sizing:border-box}
 button{background:#154e69;color:white;border:0;border-radius:6px;cursor:pointer}
 [hidden]{display:none!important}section{border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0}
-pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}.post-card{border:1px solid #dce2e7;border-radius:10px;padding:16px;margin:12px 0;background:#fff}.post-card h3{margin:0 0 8px}.post-card p{overflow-wrap:anywhere}.post-card img{max-width:180px;max-height:140px;object-fit:cover;border-radius:6px}.post-actions{display:flex;gap:8px;flex-wrap:wrap}.post-actions button{width:auto;flex:1;min-width:140px}.post-card .meta{color:#52606d;font-size:14px}.post-card .state{font-weight:700}.post-card button:disabled{opacity:.5;cursor:not-allowed}.dashboard{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.metric{border:1px solid #dce2e7;border-radius:8px;padding:12px;background:#f8fafb}.metric strong{display:block;font-size:25px}.calendar-list{list-style:none;padding:0}.calendar-list li{border-bottom:1px solid #e5e9ec;padding:10px 0}.calendar-list time{font-weight:600}.calendar-list small{display:block;color:#52606d}@media(min-width:650px){.dashboard{grid-template-columns:repeat(4,minmax(0,1fr))}}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}.post-card{border:1px solid #dce2e7;border-radius:10px;padding:16px;margin:12px 0;background:#fff}.post-card h3{margin:0 0 8px}.post-card p{overflow-wrap:anywhere}.post-card img{max-width:180px;max-height:140px;object-fit:cover;border-radius:6px}.post-actions{display:flex;gap:8px;flex-wrap:wrap}.post-actions button{width:auto;flex:1;min-width:140px}.post-card .meta{color:#52606d;font-size:14px}.post-card .state{font-weight:700}.post-card button:disabled{opacity:.5;cursor:not-allowed}.dashboard{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.metric{border:1px solid #dce2e7;border-radius:8px;padding:12px;background:#f8fafb}.metric strong{display:block;font-size:25px}.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:14px 0}.calendar-day{min-height:95px;border:1px solid #dce2e7;border-radius:6px;padding:6px;min-width:0;background:#fff}.calendar-day.other{background:#f5f7f8;color:#7b8790}.calendar-day strong{display:block;font-size:12px}.calendar-chip{display:block;width:100%;text-align:left;font-size:11px;line-height:1.3;margin:4px 0;padding:5px;border:1px solid #a9bdc7;background:#eaf2f6;border-radius:4px;overflow-wrap:anywhere;cursor:pointer}.calendar-chip.cancelled{background:#f0f0f0;border-color:#ddd}.calendar-chip.approved{background:#eaf4ec;border-color:#b5d4bc}.calendar-weekday{font-size:12px;text-align:center;font-weight:700}.calendar-list{list-style:none;padding:0}.calendar-list li{border-bottom:1px solid #e5e9ec;padding:10px 0}.calendar-list time{font-weight:600}.calendar-list small{display:block;color:#52606d}@media(min-width:650px){.dashboard{grid-template-columns:repeat(4,minmax(0,1fr))}}
 </style></head><body>
 <h1>SocialPlan 5.8 — PostgreSQL test</h1>
 <p>Bu ekran yalnızca izole geliştirme API'si içindir. Instagram'a otomatik yayın yapmaz.</p>
@@ -403,7 +403,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}
 <button id="refresh">Taslakları listele</button><h3>İçerik işlemleri</h3><label for="post-id">İçerik numarası (ID)</label><input id="post-id" type="number" min="1" step="1" placeholder="Örnek: 3"><button id="approve">İçeriği onayla</button><button id="cancel">İçeriği iptal et</button><p>Onay işlemi Instagram'da paylaşım yapmaz. İptal edilen içerik kaydı silinmez.</p></section>
 <section id="edit-section" hidden><h2>Taslağı düzenle</h2><p>Yalnızca taslak durumundaki içerikler düzenlenebilir.</p><label for="edit-id">İçerik ID</label><input id="edit-id" readonly><label for="edit-caption">Açıklama</label><textarea id="edit-caption"></textarea><label for="edit-media">HTTPS medya bağlantısı</label><input id="edit-media" type="url"><label for="edit-date">Planlanan tarih</label><input id="edit-date" type="datetime-local"><button id="save-edit">Değişiklikleri kaydet</button><button id="close-edit" type="button">Vazgeç</button><p id="edit-status" role="status"></p></section>
 <section><h2>Yönetim özeti</h2><div class="dashboard" id="dashboard" aria-live="polite"><div class="metric">İçerik verileri giriş sonrasında yüklenir.</div></div></section>
-<section><h2>Yayın takvimi</h2><p>Planlanan içerikler, yayınlanmadan yalnızca takvim görünümünde listelenir.</p><label for="calendar-month">Ay seçin</label><input id="calendar-month" type="month"><ul id="calendar-list" class="calendar-list" aria-live="polite"></ul></section>
+<section><h2>Yayın takvimi</h2><p>Planlanan içerikler, yayınlanmadan yalnızca takvim görünümünde listelenir.</p><label for="calendar-view">Takvim görünümü</label><select id="calendar-view"><option value="month">Aylık</option><option value="week">Haftalık</option></select><label for="calendar-month">Ay seçin</label><input id="calendar-month" type="month"><label for="calendar-week-date" id="calendar-week-label" hidden>Haftadan bir gün seçin</label><input id="calendar-week-date" type="date" hidden><div id="calendar-grid" class="calendar-grid" aria-live="polite"></div><details><summary>Kronolojik liste</summary><ul id="calendar-list" class="calendar-list"></ul></details></section>
 <section><h2>İçerik yönetimi</h2><p>İçerikleriniz burada tarih, açıklama ve durumlarıyla görüntülenir.</p><label for="status-filter">Duruma göre filtrele</label><select id="status-filter"><option value="all">Tüm içerikler</option><option value="draft">Taslaklar</option><option value="approved">Onaylananlar</option><option value="cancelled">İptal edilenler</option></select><p id="post-count" aria-live="polite"></p><div id="post-list" aria-live="polite">İçerikleri görmek için giriş yapıp Taslakları listele seçeneğine basın.</div></section><details><summary>Teknik işlem çıktısı</summary><pre id="output" role="status"></pre></details>
 <script>
 let token = sessionStorage.getItem("socialplan_pg_test_token") || "", mediaKey = "", cachedPosts = [];
@@ -518,17 +518,57 @@ function updateDashboard(posts) {
   card.append(name,number);root.append(card);
  }
 }
+function localDateKey(date){return [date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-");}
 function updateCalendar(posts){
+ const mode=document.getElementById("calendar-view").value;
  const month=document.getElementById("calendar-month").value;
+ const weekValue=document.getElementById("calendar-week-date").value;
+ document.getElementById("calendar-month").hidden=mode==="week";
+ document.querySelector('label[for="calendar-month"]').hidden=mode==="week";
+ document.getElementById("calendar-week-date").hidden=mode!=="week";
+ document.getElementById("calendar-week-label").hidden=mode!=="week";
+ const grid=document.getElementById("calendar-grid");grid.replaceChildren();
  const root=document.getElementById("calendar-list");root.replaceChildren();
- const rows=posts.filter(p=>{const d=new Date(p.scheduled_at);return !Number.isNaN(d.getTime())&&[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0")].join("-")===month;})
- .sort((a,b)=>new Date(a.scheduled_at)-new Date(b.scheduled_at));
- if(!rows.length){const li=document.createElement("li");li.textContent="Seçilen ayda planlanmış içerik yok.";root.append(li);return;}
+ let start,end;
+ if(mode==="week"){
+  const base=new Date((weekValue||localDateKey(new Date()))+"T12:00:00");
+  start=new Date(base.getFullYear(),base.getMonth(),base.getDate()-(base.getDay()+6)%7);
+  end=new Date(start.getFullYear(),start.getMonth(),start.getDate()+7);
+ }else{
+  const parts=(month||localDateKey(new Date()).slice(0,7)).split("-").map(Number);
+  const first=new Date(parts[0],parts[1]-1,1);
+  start=new Date(first.getFullYear(),first.getMonth(),1-(first.getDay()+6)%7);
+  const next=new Date(parts[0],parts[1],1);
+  end=new Date(next.getFullYear(),next.getMonth(),next.getDate()+(7-(next.getDay()+6)%7)%7);
+ }
  const names={draft:"Taslak",approved:"Onaylandı",cancelled:"İptal edildi"};
+ const grouped=new Map();
+ const rows=posts.filter(p=>{const d=new Date(p.scheduled_at);return !Number.isNaN(d.getTime())&&d>=start&&d<end;})
+ .sort((a,b)=>new Date(a.scheduled_at)-new Date(b.scheduled_at));
+ for(const p of rows){const key=localDateKey(new Date(p.scheduled_at));if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(p);}
+ for(const name of ["Pzt","Sal","Çar","Per","Cum","Cmt","Paz"]){const h=document.createElement("div");h.className="calendar-weekday";h.textContent=name;grid.append(h);}
+ for(let day=new Date(start);day<end;day.setDate(day.getDate()+1)){
+  const cell=document.createElement("div");cell.className="calendar-day";
+  if(mode==="month"&&localDateKey(day).slice(0,7)!==month)cell.classList.add("other");
+  const title=document.createElement("strong");title.textContent=String(day.getDate());cell.append(title);
+  for(const p of grouped.get(localDateKey(day))||[]){
+   const chip=document.createElement("button");chip.type="button";chip.className="calendar-chip "+p.status;
+   chip.textContent=new Date(p.scheduled_at).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+" #"+p.id+" "+p.caption;
+   chip.title=(names[p.status]||p.status)+" — "+p.caption;
+   chip.onclick=()=>{document.getElementById("status-filter").value="all";renderPosts(cachedPosts);document.getElementById("post-id").value=p.id;document.getElementById("post-list").scrollIntoView({behavior:"smooth"});};
+   cell.append(chip);
+  }
+  grid.append(cell);
+ }
+ if(!rows.length){const li=document.createElement("li");li.textContent="Seçilen dönemde planlanmış içerik yok.";root.append(li);}
  for(const p of rows){const li=document.createElement("li");const t=document.createElement("time");t.textContent=new Date(p.scheduled_at).toLocaleString("tr-TR");const d=document.createElement("small");d.textContent="#"+p.id+" · "+(names[p.status]||p.status)+" · "+p.caption;li.append(t,d);root.append(li);}
 }
-document.getElementById("calendar-month").value=new Date().getFullYear()+"-"+String(new Date().getMonth()+1).padStart(2,"0");
+document.getElementById("calendar-month").value=localDateKey(new Date()).slice(0,7);
+document.getElementById("calendar-week-date").value=localDateKey(new Date());
 document.getElementById("calendar-month").onchange=()=>updateCalendar(cachedPosts);
+document.getElementById("calendar-week-date").onchange=()=>updateCalendar(cachedPosts);
+document.getElementById("calendar-view").onchange=()=>updateCalendar(cachedPosts);
+
 function renderPosts(posts) {
  cachedPosts=posts;
  updateDashboard(posts);

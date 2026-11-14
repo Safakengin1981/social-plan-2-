@@ -107,6 +107,14 @@ def run_workflow_probe():
         ).fetchone()
         if not row or row["status"] != "cancelled":
             raise RuntimeError("WORKFLOW_PROBE persisted post missing or wrong status")
+        # An unrelated tenant ID must never read or change this post.
+        outsider_business_id = -1
+        if store.list_posts(outsider_business_id):
+            raise RuntimeError("WORKFLOW_PROBE tenant isolation read failed")
+        if store.change_post_status(
+            outsider_business_id, user["id"], row["id"], "approve", int(time.time())
+        ):
+            raise RuntimeError("WORKFLOW_PROBE tenant isolation write failed")
         actions = db.execute(
             "SELECT action FROM audit_events WHERE business_id=%s AND post_id=%s",
             (business_id, row["id"]),

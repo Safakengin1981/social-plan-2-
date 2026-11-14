@@ -382,7 +382,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}
 <button id="refresh">Taslakları listele</button><h3>İçerik işlemleri</h3><label for="post-id">İçerik numarası (ID)</label><input id="post-id" type="number" min="1" step="1" placeholder="Örnek: 3"><button id="approve">İçeriği onayla</button><button id="cancel">İçeriği iptal et</button><p>Onay işlemi Instagram'da paylaşım yapmaz. İptal edilen içerik kaydı silinmez.</p></section>
 <pre id="output" role="status"></pre>
 <script>
-let token = "", mediaKey = "";
+let token = sessionStorage.getItem("socialplan_pg_test_token") || "", mediaKey = "";
 const out = document.getElementById("output");
 async function api(path, opts = {}) {
   const headers = {...(opts.headers || {})};
@@ -421,6 +421,7 @@ document.getElementById("login").onclick = async () => {
   const r=await api("/api/login",{method:"POST",body:JSON.stringify({
    email:document.getElementById("email").value,password:document.getElementById("password").value})});
   token=r.token;
+  sessionStorage.setItem("socialplan_pg_test_token", token);
   const profile=await api("/api/me");
   status.textContent="Giriş başarılı: "+profile.business+" ("+profile.email+")";
   report(status.textContent);
@@ -428,7 +429,7 @@ document.getElementById("login").onclick = async () => {
 };
 document.getElementById("logout").onclick = async () => {
  try {if(token) await api("/api/logout",{method:"POST"});} catch(e){report(e.message);}
- token=""; mediaKey=""; report("Oturum kapatıldı.");
+ token=""; sessionStorage.removeItem("socialplan_pg_test_token"); mediaKey=""; report("Oturum kapatıldı.");
 };
 document.getElementById("upload").onclick = async () => {
  try {const file=document.getElementById("file").files[0]; if(!file) throw Error("Dosya seçin");
@@ -463,6 +464,18 @@ async function changeStatus(action) {
 }
 document.getElementById("approve").onclick=()=>changeStatus("approve");
 document.getElementById("cancel").onclick=()=>changeStatus("cancel");
+async function restoreSession() {
+ if (!token) return;
+ try {
+  const profile=await api("/api/me");
+  document.getElementById("login-status").textContent="Oturum devam ediyor: "+profile.business+" ("+profile.email+")";
+  report("Oturum geri yüklendi. İçeriklerinizi listeleyebilirsiniz.");
+ } catch(e) {
+  token=""; sessionStorage.removeItem("socialplan_pg_test_token");
+  document.getElementById("login-status").textContent="Oturum süresi doldu. Yeniden giriş yapın.";
+ }
+}
+restoreSession();
 document.getElementById("refresh").onclick = async () => {
  try{report(await api("/api/posts"));}catch(e){report(e.message);}
 };

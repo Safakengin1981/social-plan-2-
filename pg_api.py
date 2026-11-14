@@ -108,11 +108,23 @@ def run_workflow_probe():
         if not row or row["status"] != "cancelled":
             raise RuntimeError("WORKFLOW_PROBE persisted post missing or wrong status")
         # An unrelated tenant ID must never read or change this post.
-        outsider_business_id = -1
+        # Use a real, separate synthetic tenant rather than a nonexistent ID.
+        outsider_email = "socialplan-isolation-probe-v1@example.invalid"
+        outsider = store.get_user_by_email(outsider_email)
+        if outsider is None:
+            outsider_salt = secrets.token_hex(16)
+            store.register_business(
+                "SocialPlan isolated second tenant", outsider_email,
+                outsider_salt, password_hash(secrets.token_urlsafe(32), outsider_salt),
+            )
+            outsider = store.get_user_by_email(outsider_email)
+        if not outsider or outsider["business_id"] == business_id:
+            raise RuntimeError("WORKFLOW_PROBE second tenant setup failed")
+        outsider_business_id = outsider["business_id"]
         if store.list_posts(outsider_business_id):
             raise RuntimeError("WORKFLOW_PROBE tenant isolation read failed")
         if store.change_post_status(
-            outsider_business_id, user["id"], row["id"], "approve", int(time.time())
+            outsider_business_id, outsider["id"], row["id"], "approve", int(time.time())
         ):
             raise RuntimeError("WORKFLOW_PROBE tenant isolation write failed")
         actions = db.execute(

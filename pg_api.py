@@ -360,15 +360,15 @@ def test_interface():
 <html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SocialPlan PostgreSQL Test</title>
 <style>body{font:16px system-ui;max-width:720px;margin:30px auto;padding:0 16px;color:#17212b}
-input,textarea,button{font:inherit;padding:10px;margin:6px 0;width:100%;box-sizing:border-box}
+input,textarea,button,select{font:inherit;padding:10px;margin:6px 0;width:100%;box-sizing:border-box}
 button{background:#154e69;color:white;border:0;border-radius:6px;cursor:pointer}
-section{border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0}
+[hidden]{display:none!important}section{border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}.post-card{border:1px solid #dce2e7;border-radius:10px;padding:16px;margin:12px 0;background:#fff}.post-card h3{margin:0 0 8px}.post-card p{overflow-wrap:anywhere}.post-card img{max-width:180px;max-height:140px;object-fit:cover;border-radius:6px}.post-actions{display:flex;gap:8px;flex-wrap:wrap}.post-actions button{width:auto;flex:1;min-width:140px}.post-card .meta{color:#52606d;font-size:14px}.post-card .state{font-weight:700}.post-card button:disabled{opacity:.5;cursor:not-allowed}
 </style></head><body>
 <h1>SocialPlan 5.8 — PostgreSQL test</h1>
 <p>Bu ekran yalnızca izole geliştirme API'si içindir. Instagram'a otomatik yayın yapmaz.</p>
-<section><h2>1. Yeni test işletmesi oluştur</h2><label>İşletme adı</label><input id="business" placeholder="Örnek Test İşletmesi"><label>E-posta adresi</label><input id="register-email" type="email" autocomplete="email" placeholder="ornek@eposta.com"><label>Test şifresi (en az 12 karakter)</label><input id="register-password" type="password" autocomplete="new-password" placeholder="En az 12 karakter"><button id="register">İşletme oluştur</button><p id="register-status" role="status" aria-live="polite"></p><p>Aynı e-posta daha önce kaydedildiyse yeniden işletme oluşturmayın; aşağıdan giriş yapın.</p></section>
-<section><h2>2. Giriş</h2><input id="email" type="email" autocomplete="email" placeholder="Kayıtlı e-posta">
+<section id="registration-section"><h2>1. Yeni test işletmesi oluştur</h2><label>İşletme adı</label><input id="business" placeholder="Örnek Test İşletmesi"><label>E-posta adresi</label><input id="register-email" type="email" autocomplete="email" placeholder="ornek@eposta.com"><label>Test şifresi (en az 12 karakter)</label><input id="register-password" type="password" autocomplete="new-password" placeholder="En az 12 karakter"><button id="register">İşletme oluştur</button><p id="register-status" role="status" aria-live="polite"></p><p>Aynı e-posta daha önce kaydedildiyse yeniden işletme oluşturmayın; aşağıdan giriş yapın.</p></section>
+<section id="login-section"><h2>2. Giriş</h2><input id="email" type="email" autocomplete="email" placeholder="Kayıtlı e-posta">
 <input id="password" type="password" placeholder="Şifre">
 <button id="login">Giriş yap</button><button id="logout">Çıkış yap</button><p id="login-status" role="status" aria-live="polite"></p></section>
 <section><h2>Medya kaynağı (R2 gerektirmez)</h2>
@@ -380,9 +380,9 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}
 <section><h2>İçerik taslağı</h2><textarea id="caption" placeholder="Açıklama"></textarea>
 <input id="scheduled" type="datetime-local"><button id="create">Taslak oluştur</button>
 <button id="refresh">Taslakları listele</button><h3>İçerik işlemleri</h3><label for="post-id">İçerik numarası (ID)</label><input id="post-id" type="number" min="1" step="1" placeholder="Örnek: 3"><button id="approve">İçeriği onayla</button><button id="cancel">İçeriği iptal et</button><p>Onay işlemi Instagram'da paylaşım yapmaz. İptal edilen içerik kaydı silinmez.</p></section>
-<section><h2>İçerik yönetimi</h2><p>İçerikleriniz burada tarih, açıklama ve durumlarıyla görüntülenir.</p><div id="post-list" aria-live="polite">İçerikleri görmek için giriş yapıp Taslakları listele seçeneğine basın.</div></section><details><summary>Teknik işlem çıktısı</summary><pre id="output" role="status"></pre></details>
+<section><h2>İçerik yönetimi</h2><p>İçerikleriniz burada tarih, açıklama ve durumlarıyla görüntülenir.</p><label for="status-filter">Duruma göre filtrele</label><select id="status-filter"><option value="all">Tüm içerikler</option><option value="draft">Taslaklar</option><option value="approved">Onaylananlar</option><option value="cancelled">İptal edilenler</option></select><p id="post-count" aria-live="polite"></p><div id="post-list" aria-live="polite">İçerikleri görmek için giriş yapıp Taslakları listele seçeneğine basın.</div></section><details><summary>Teknik işlem çıktısı</summary><pre id="output" role="status"></pre></details>
 <script>
-let token = sessionStorage.getItem("socialplan_pg_test_token") || "", mediaKey = "";
+let token = sessionStorage.getItem("socialplan_pg_test_token") || "", mediaKey = "", cachedPosts = [];
 const out = document.getElementById("output");
 async function api(path, opts = {}) {
   const headers = {...(opts.headers || {})};
@@ -424,13 +424,14 @@ document.getElementById("login").onclick = async () => {
   sessionStorage.setItem("socialplan_pg_test_token", token);
   const profile=await api("/api/me");
   status.textContent="Giriş başarılı: "+profile.business+" ("+profile.email+")";
+  updateAuthView(true);
   report(status.textContent);
   await loadPosts();
  } catch(e){status.textContent=e.message;report(e.message);}
 };
 document.getElementById("logout").onclick = async () => {
  try {if(token) await api("/api/logout",{method:"POST"});} catch(e){report(e.message);}
- token=""; sessionStorage.removeItem("socialplan_pg_test_token"); mediaKey=""; report("Oturum kapatıldı.");
+ token=""; sessionStorage.removeItem("socialplan_pg_test_token"); mediaKey=""; cachedPosts=[]; updateAuthView(false); document.getElementById("post-list").textContent="İçerikleri görüntülemek için giriş yapın."; report("Oturum kapatıldı.");
 };
 document.getElementById("upload").onclick = async () => {
  try {const file=document.getElementById("file").files[0]; if(!file) throw Error("Dosya seçin");
@@ -452,11 +453,14 @@ document.getElementById("create").onclick = async () => {
  scheduled_at:new Date(local).toISOString()})});report(r);await loadPosts();}catch(e){report(e.message);}
 };
 function renderPosts(posts) {
+ cachedPosts=posts;
+ const filtered=posts.filter(p=>document.getElementById("status-filter").value==="all" || p.status===document.getElementById("status-filter").value);
+ document.getElementById("post-count").textContent=filtered.length+" / "+posts.length+" içerik gösteriliyor";
  const list=document.getElementById("post-list");
  list.replaceChildren();
- if(!posts.length){list.textContent="Henüz kayıtlı içerik bulunmuyor.";return;}
+ if(!filtered.length){list.textContent=posts.length?"Bu durumda içerik bulunmuyor.":"Henüz kayıtlı içerik bulunmuyor.";return;}
  const statusText={draft:"Taslak",approved:"Onaylandı",cancelled:"İptal edildi"};
- for(const post of posts) {
+ for(const post of filtered) {
   const card=document.createElement("article");card.className="post-card";
   const heading=document.createElement("h3");heading.textContent="İçerik #"+post.id;card.append(heading);
   const caption=document.createElement("p");caption.textContent=post.caption;card.append(caption);
@@ -477,6 +481,13 @@ function renderPosts(posts) {
   }
   card.append(actions);list.append(card);
  }
+}
+document.getElementById("status-filter").onchange=()=>renderPosts(cachedPosts);
+function updateAuthView(loggedIn){
+ document.getElementById("registration-section").hidden=loggedIn;
+ document.getElementById("login-section").querySelector("#email").disabled=loggedIn;
+ document.getElementById("login-section").querySelector("#password").disabled=loggedIn;
+ document.getElementById("login").disabled=loggedIn;
 }
 async function loadPosts(){
  if(!token){document.getElementById("post-list").textContent="Önce giriş yapın.";return;}
@@ -502,10 +513,11 @@ async function restoreSession() {
  try {
   const profile=await api("/api/me");
   document.getElementById("login-status").textContent="Oturum devam ediyor: "+profile.business+" ("+profile.email+")";
+  updateAuthView(true);
   report("Oturum geri yüklendi. İçeriklerinizi listeleyebilirsiniz.");
   await loadPosts();
  } catch(e) {
-  token=""; sessionStorage.removeItem("socialplan_pg_test_token");
+  token=""; sessionStorage.removeItem("socialplan_pg_test_token"); updateAuthView(false);
   document.getElementById("login-status").textContent="Oturum süresi doldu. Yeniden giriş yapın.";
  }
 }

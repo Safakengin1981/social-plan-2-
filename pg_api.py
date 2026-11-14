@@ -121,8 +121,27 @@ def run_workflow_probe():
         if not outsider or outsider["business_id"] == business_id:
             raise RuntimeError("WORKFLOW_PROBE second tenant setup failed")
         outsider_business_id = outsider["business_id"]
-        if store.list_posts(outsider_business_id):
+        # Give the second tenant its own durable post, then verify both directions.
+        outsider_caption = "SOCIALPLAN_SECOND_TENANT_PROBE_V1"
+        outsider_posts = store.list_posts(outsider_business_id)
+        if not any(p["caption"] == outsider_caption for p in outsider_posts):
+            store.create_post(
+                outsider_business_id, outsider["id"], outsider_caption,
+                "https://example.com/socialplan-second-tenant.jpg",
+                "2035-01-02T12:00:00+00:00", int(time.time()),
+            )
+            outsider_posts = store.list_posts(outsider_business_id)
+        if not any(p["caption"] == outsider_caption for p in outsider_posts):
+            raise RuntimeError("WORKFLOW_PROBE second tenant post missing")
+        if any(p["caption"] == caption for p in outsider_posts):
             raise RuntimeError("WORKFLOW_PROBE tenant isolation read failed")
+        if any(p["caption"] == outsider_caption for p in store.list_posts(business_id)):
+            raise RuntimeError("WORKFLOW_PROBE reverse tenant isolation read failed")
+        outsider_post = next(p for p in outsider_posts if p["caption"] == outsider_caption)
+        if store.change_post_status(
+            business_id, user["id"], outsider_post["id"], "approve", int(time.time())
+        ):
+            raise RuntimeError("WORKFLOW_PROBE reverse tenant isolation write failed")
         if store.change_post_status(
             outsider_business_id, outsider["id"], row["id"], "approve", int(time.time())
         ):

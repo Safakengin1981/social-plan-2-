@@ -146,6 +146,25 @@ def run_workflow_probe():
             outsider_business_id, outsider["id"], row["id"], "approve", int(time.time())
         ):
             raise RuntimeError("WORKFLOW_PROBE tenant isolation write failed")
+        # Durable publishing queue is only a dry-run: no Instagram publishing.
+        now = int(time.time())
+        if not store.upsert_publish_job(
+            outsider_post["id"], outsider_business_id, "blocked",
+            "isolation-test-no-instagram", now,
+        ):
+            raise RuntimeError("WORKFLOW_PROBE queue write failed")
+        if store.upsert_publish_job(
+            outsider_post["id"], business_id, "ready", "cross-tenant-attempt", now,
+        ):
+            raise RuntimeError("WORKFLOW_PROBE cross-tenant queue mutation allowed")
+        own_jobs = store.list_publish_jobs(outsider_business_id)
+        if not any(j["post_id"] == outsider_post["id"] and j["state"] == "blocked"
+                   for j in own_jobs):
+            raise RuntimeError("WORKFLOW_PROBE own queue read failed")
+        if any(j["post_id"] == outsider_post["id"]
+               for j in store.list_publish_jobs(business_id)):
+            raise RuntimeError("WORKFLOW_PROBE cross-tenant queue read allowed")
+        logger.warning("WORKFLOW_PROBE publishing queue tenant isolation verified (dry-run)")
         actions = db.execute(
             "SELECT action FROM audit_events WHERE business_id=%s AND post_id=%s",
             (business_id, row["id"]),

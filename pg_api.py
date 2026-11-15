@@ -385,9 +385,9 @@ input,textarea,button,select{font:inherit;padding:10px;margin:6px 0;width:100%;b
 button{background:#154e69;color:white;border:0;border-radius:6px;cursor:pointer}
 [hidden]{display:none!important}section{border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}.post-card{border:1px solid #dce2e7;border-radius:10px;padding:16px;margin:12px 0;background:#fff}.post-card h3{margin:0 0 8px}.post-card p{overflow-wrap:anywhere}.post-card img{max-width:180px;max-height:140px;object-fit:cover;border-radius:6px}.post-actions{display:flex;gap:8px;flex-wrap:wrap}.post-actions button{width:auto;flex:1;min-width:140px}.post-card .meta{color:#52606d;font-size:14px}.post-card .state{font-weight:700}.post-card button:disabled{opacity:.5;cursor:not-allowed}.dashboard{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.metric{border:1px solid #dce2e7;border-radius:8px;padding:12px;background:#f8fafb}.metric strong{display:block;font-size:25px}.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:14px 0}.calendar-day{min-height:95px;border:1px solid #dce2e7;border-radius:6px;padding:6px;min-width:0;background:#fff}.calendar-day.other{background:#f5f7f8;color:#7b8790}.calendar-day strong{display:block;font-size:12px}.calendar-chip{display:block;width:100%;text-align:left;font-size:11px;line-height:1.3;margin:4px 0;padding:5px;border:1px solid #a9bdc7;background:#eaf2f6;border-radius:4px;overflow-wrap:anywhere;cursor:pointer}.calendar-chip.cancelled{background:#f0f0f0;border-color:#ddd}.calendar-chip.approved{background:#eaf4ec;border-color:#b5d4bc}.calendar-weekday{font-size:12px;text-align:center;font-weight:700}.calendar-grid.weekly{grid-template-columns:1fr;gap:8px}.calendar-grid.weekly .calendar-weekday{display:none}.calendar-grid.weekly .calendar-day{min-height:64px;display:grid;grid-template-columns:100px minmax(0,1fr);align-items:start;gap:8px}.calendar-grid.weekly .calendar-day strong{font-size:14px;padding:7px 0}.calendar-grid.weekly .calendar-chip{grid-column:2;font-size:13px;white-space:normal}.calendar-chip,.calendar-chip:hover{color:#153247!important;font-weight:600!important;box-shadow:none!important}.calendar-chip.cancelled{color:#424a51!important;background:#e9eaec!important;border-color:#c9cdd1!important}.calendar-chip.approved{color:#18582b!important;background:#e4f3e8!important;border-color:#a9cfb2!important}.calendar-chip.draft{color:#174c70!important;background:#e3f1fb!important;border-color:#a5c9e0!important}.calendar-chip:focus-visible{outline:3px solid #1d668e;outline-offset:2px}.calendar-day{overflow:hidden}.calendar-chip{white-space:nowrap;text-overflow:ellipsis;overflow:hidden;line-height:1.4;min-height:32px}.calendar-detail{border:1px solid #cbd6dd;border-radius:8px;padding:14px;background:#f7fafc;margin-top:12px}.calendar-detail p{overflow-wrap:anywhere}.calendar-detail button{margin-top:8px}@media(max-width:640px){.calendar-grid:not(.weekly){overflow-x:auto;min-width:640px}.calendar-day{padding:4px}.calendar-chip{font-size:10px}}.calendar-list{list-style:none;padding:0}.calendar-list li{border-bottom:1px solid #e5e9ec;padding:10px 0}.calendar-list time{font-weight:600}.calendar-list small{display:block;color:#52606d}@media(min-width:650px){.dashboard{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.app-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 4px;border-bottom:1px solid #dbe3e8}.app-header h1{margin:0;font-size:29px;letter-spacing:-.6px}.app-header h1 span{color:#247397}.app-header p{margin:5px 0;color:#516475;font-size:13px}.test-label{font-size:11px;letter-spacing:.3px;font-weight:700;color:#73551c;background:#fff2d6;padding:8px;border-radius:6px}.app-nav{display:flex;gap:7px;overflow-x:auto;position:sticky;top:0;background:white;padding:12px 0;z-index:10;border-bottom:1px solid #e1e7eb}.app-nav button{flex:0 0 auto;width:auto;padding:10px 13px;margin:0;background:#edf3f6;color:#19425b;font-size:14px}.app-nav button.active{background:#154e69;color:#fff}.app-panel{display:none}.app-panel.active{display:block}.app-panel section{margin:14px 0}.app-panel>section:first-child{margin-top:18px}body{max-width:960px}.app-nav button:focus-visible{outline:3px solid #3984a6}@media(max-width:640px){.app-header{display:block}.test-label{display:inline-block;margin-top:9px}.app-nav button{font-size:12px;padding:9px}}
 </style></head><body>
-<h1>SocialPlan 5.8 — PostgreSQL test</h1>
-<p>Bu ekran yalnızca izole geliştirme API'si içindir. Instagram'a otomatik yayın yapmaz.</p>
+<header class="app-header"><div><h1>SocialPlan <span>5.8</span></h1><p>RHM Teras · Bağımsız PostgreSQL test paneli</p></div><span class="test-label">TEST ORTAMI · Instagram yayını kapalı</span></header><nav id="app-nav" class="app-nav" aria-label="Yönetim bölümleri" hidden><button type="button" data-nav="overview">Genel bakış</button><button type="button" data-nav="calendar">Yayın takvimi</button><button type="button" data-nav="create">İçerik oluştur</button><button type="button" data-nav="posts">İçerik yönetimi</button><button type="button" data-nav="account">Hesap</button></nav>
 <section id="registration-section"><h2>1. Yeni test işletmesi oluştur</h2><label>İşletme adı</label><input id="business" placeholder="Örnek Test İşletmesi"><label>E-posta adresi</label><input id="register-email" type="email" autocomplete="email" placeholder="ornek@eposta.com"><label>Test şifresi (en az 12 karakter)</label><input id="register-password" type="password" autocomplete="new-password" placeholder="En az 12 karakter"><button id="register">İşletme oluştur</button><p id="register-status" role="status" aria-live="polite"></p><p>Aynı e-posta daha önce kaydedildiyse yeniden işletme oluşturmayın; aşağıdan giriş yapın.</p></section>
 <section id="login-section"><h2>2. Giriş</h2><input id="email" type="email" autocomplete="email" placeholder="Kayıtlı e-posta">
 <input id="password" type="password" placeholder="Şifre">
@@ -406,6 +406,34 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}
 <section><h2>Yayın takvimi</h2><p>Planlanan içerikler, yayınlanmadan yalnızca takvim görünümünde listelenir.</p><label for="calendar-view">Takvim görünümü</label><select id="calendar-view"><option value="month">Aylık</option><option value="week">Haftalık</option></select><label for="calendar-month">Ay seçin</label><input id="calendar-month" type="month"><label for="calendar-week-date" id="calendar-week-label" hidden>Haftadan bir gün seçin</label><input id="calendar-week-date" type="date" hidden><div id="calendar-grid" class="calendar-grid" aria-live="polite"></div><div id="calendar-detail" class="calendar-detail" hidden aria-live="polite"></div><details><summary>Kronolojik liste</summary><ul id="calendar-list" class="calendar-list"></ul></details></section>
 <section><h2>İçerik yönetimi</h2><p>İçerikleriniz burada tarih, açıklama ve durumlarıyla görüntülenir.</p><label for="status-filter">Duruma göre filtrele</label><select id="status-filter"><option value="all">Tüm içerikler</option><option value="draft">Taslaklar</option><option value="approved">Onaylananlar</option><option value="cancelled">İptal edilenler</option></select><p id="post-count" aria-live="polite"></p><div id="post-list" aria-live="polite">İçerikleri görmek için giriş yapıp Taslakları listele seçeneğine basın.</div></section><details><summary>Teknik işlem çıktısı</summary><pre id="output" role="status"></pre></details>
 <script>
+let activePanel="overview";
+function setupPanels(){
+ const sections=[...document.querySelectorAll("body > section")];
+ const groups={overview:[],calendar:[],create:[],posts:[],account:[]};
+ for(const section of sections){
+  const heading=section.querySelector("h2")?.textContent||"";
+  const panel=section.id==="registration-section"||section.id==="login-section"?"account":
+   section.id==="edit-section"||heading==="İçerik yönetimi"?"posts":
+   heading==="Yönetim özeti"?"overview":
+   heading==="Yayın takvimi"?"calendar":"create";
+  groups[panel].push(section);
+ }
+ const nav=document.getElementById("app-nav");
+ for(const [name,items] of Object.entries(groups)){
+  const wrap=document.createElement("div");wrap.className="app-panel";wrap.dataset.panel=name;
+  for(const item of items)wrap.append(item);
+  nav.after(wrap);
+ }
+ nav.querySelectorAll("[data-nav]").forEach(button=>button.onclick=()=>showPanel(button.dataset.nav));
+ showPanel("overview");
+}
+function showPanel(name){
+ activePanel=name;
+ document.querySelectorAll(".app-panel").forEach(p=>p.classList.toggle("active",p.dataset.panel===name));
+ document.querySelectorAll("[data-nav]").forEach(b=>{b.classList.toggle("active",b.dataset.nav===name);b.setAttribute("aria-current",b.dataset.nav===name?"page":"false");});
+}
+setupPanels();
+
 let token = sessionStorage.getItem("socialplan_pg_test_token") || "", mediaKey = "", cachedPosts = [];
 const out = document.getElementById("output");
 async function api(path, opts = {}) {
@@ -488,6 +516,7 @@ function openDraftEditor(post){
  document.getElementById("edit-date").value=local;
  document.getElementById("edit-status").textContent="";
  document.getElementById("edit-section").hidden=false;
+ showPanel("posts");
  document.getElementById("edit-section").scrollIntoView({behavior:"smooth",block:"start"});
 }
 document.getElementById("close-edit").onclick=()=>{document.getElementById("edit-section").hidden=true;};
@@ -531,7 +560,7 @@ function showCalendarDetail(post){
   const edit=document.createElement("button");edit.textContent="Taslağı düzenle";edit.onclick=()=>openDraftEditor(post);root.append(edit);
  }
  const go=document.createElement("button");go.textContent="İçerik yönetiminde göster";
- go.onclick=()=>{document.getElementById("status-filter").value="all";renderPosts(cachedPosts);document.getElementById("post-id").value=post.id;document.getElementById("post-list").scrollIntoView({behavior:"smooth"});};
+ go.onclick=()=>{document.getElementById("status-filter").value="all";renderPosts(cachedPosts);document.getElementById("post-id").value=post.id;showPanel("posts");document.getElementById("post-list").scrollIntoView({behavior:"smooth"});};
  root.append(go);
 }
 function updateCalendar(posts){
@@ -621,6 +650,8 @@ function renderPosts(posts) {
 }
 document.getElementById("status-filter").onchange=()=>renderPosts(cachedPosts);
 function updateAuthView(loggedIn){
+ document.getElementById("app-nav").hidden=!loggedIn;
+ if(!loggedIn)showPanel("account");else if(activePanel==="account")showPanel("overview");
  document.getElementById("registration-section").hidden=loggedIn;
  document.getElementById("login-section").querySelector("#email").disabled=loggedIn;
  document.getElementById("login-section").querySelector("#password").disabled=loggedIn;

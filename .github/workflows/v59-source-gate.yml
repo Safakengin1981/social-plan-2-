@@ -9,28 +9,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify actual 5.9 sources are committed
+      - name: Verify 5.9 source and safe Docker build
         shell: bash
         run: |
           set -euo pipefail
-          test -f app.py
-          test -f static/index.html
-          test -f static/app.js
-          test -f tests/test_app.py || { echo '5.9 test suite missing; release blocked'; exit 1; }
-          test -f instagram_oauth.py || { echo '5.9 OAuth module missing; release blocked'; exit 1; }
-          test -f deployment_gate.py || { echo '5.9 deployment gate missing; release blocked'; exit 1; }
+          for file in app.py static/index.html static/app.js tests/test_app.py instagram_oauth.py deployment_gate.py requirements-test.txt; do
+            test -f "$file" || { echo "Required 5.9 file missing: $file"; exit 1; }
+          done
           if grep -q 'SocialPlan_5_8_Yeniden_Baslatma_Testi.zip.zip' Dockerfile; then
-            echo 'Dockerfile still builds 5.8 ZIP; release blocked'
+            echo 'Dockerfile still builds the 5.8 archive; release blocked'
+            exit 1
+          fi
+          if find . -path './.git' -prune -o -type f \( -name '*.sqlite3' -o -name '*.pem' -o -name '.env' \) -print | grep -q .; then
+            echo 'Potential private data or secret committed; release blocked'
             exit 1
           fi
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install dependencies
+      - name: Install application and test dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest
+          python -m pip install -r requirements.txt -r requirements-test.txt
       - name: Run full tests
         env:
           SOCIALPLAN_DB: ${{ runner.temp }}/socialplan-ci.sqlite3

@@ -1,0 +1,22 @@
+# Separate test environment; never point this at the production disk/database.
+services:
+  - type: web
+    name: socialplan-v59-isolated-test
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/ready
+    envVars:
+      - key: SOCIALPLAN_DB
+        value: /var/data/socialplan.sqlite3
+      - key: SOCIALPLAN_MEDIA
+        value: /var/data/media
+      - key: SOCIALPLAN_REQUIRE_PERSISTENT
+        value: "1"
+      - key: SOCIALPLAN_AUTO_BACKUP
+        value: "1"
+      - key: SOCIALPLAN_BACKUP_STATUS
+        value: /var/data/backup-status.json
+    disk:
+      name: socialplan-v59-isolated-data
+      mountPath: /var/data
+      sizeGB: 1

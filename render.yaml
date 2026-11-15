@@ -1,0 +1,23 @@
+# Render Blueprint: persistent disk is a PAID feature on Render.
+# Do not deploy to ephemeral storage for real data.
+services:
+  - type: web
+    name: socialplan-v30
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/ready
+    envVars:
+      - key: SOCIALPLAN_AUTO_BACKUP
+        value: "1"
+      - key: SOCIALPLAN_BACKUP_STATUS
+        value: /var/data/backup-status.json
+      - key: SOCIALPLAN_DB
+        value: /var/data/socialplan.sqlite3
+      - key: SOCIALPLAN_MEDIA
+        value: /var/data/media
+      - key: SOCIALPLAN_REQUIRE_PERSISTENT
+        value: "1"
+    disk:
+      name: socialplan-persistent
+      mountPath: /var/data
+      sizeGB: 1

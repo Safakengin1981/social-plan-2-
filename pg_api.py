@@ -425,7 +425,7 @@ function setupPanels(){
   nav.after(wrap);
  }
  nav.querySelectorAll("[data-nav]").forEach(button=>button.onclick=()=>showPanel(button.dataset.nav));
- showPanel("overview");
+ showPanel("account");
 }
 function showPanel(name){
  activePanel=name;
@@ -677,7 +677,7 @@ async function changeStatus(action) {
 document.getElementById("approve").onclick=()=>changeStatus("approve");
 document.getElementById("cancel").onclick=()=>changeStatus("cancel");
 async function restoreSession() {
- if (!token) return;
+ if (!token){updateAuthView(false);return;}
  try {
   const profile=await api("/api/me");
   document.getElementById("login-status").textContent="Oturum devam ediyor: "+profile.business+" ("+profile.email+")";

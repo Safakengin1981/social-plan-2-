@@ -1,0 +1,37 @@
+name: SocialPlan 5.9 source gate
+on:
+  push:
+    branches: [socialplan-v59-dashboard-safe]
+  pull_request:
+    branches: [socialplan-v59-dashboard-safe]
+jobs:
+  verify-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify actual 5.9 sources are committed
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f app.py
+          test -f static/index.html
+          test -f static/app.js
+          test -f tests/test_app.py || { echo '5.9 test suite missing; release blocked'; exit 1; }
+          test -f instagram_oauth.py || { echo '5.9 OAuth module missing; release blocked'; exit 1; }
+          test -f deployment_gate.py || { echo '5.9 deployment gate missing; release blocked'; exit 1; }
+          if grep -q 'SocialPlan_5_8_Yeniden_Baslatma_Testi.zip.zip' Dockerfile; then
+            echo 'Dockerfile still builds 5.8 ZIP; release blocked'
+            exit 1
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+      - name: Run full tests
+        env:
+          SOCIALPLAN_DB: ${{ runner.temp }}/socialplan-ci.sqlite3
+        run: python -m pytest -q

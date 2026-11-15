@@ -384,7 +384,7 @@ def test_interface():
 input,textarea,button,select{font:inherit;padding:10px;margin:6px 0;width:100%;box-sizing:border-box}
 button{background:#154e69;color:white;border:0;border-radius:6px;cursor:pointer}
 [hidden]{display:none!important}section{border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0}
-pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}.post-card{border:1px solid #dce2e7;border-radius:10px;padding:16px;margin:12px 0;background:#fff}.post-card h3{margin:0 0 8px}.post-card p{overflow-wrap:anywhere}.post-card img{max-width:180px;max-height:140px;object-fit:cover;border-radius:6px}.post-actions{display:flex;gap:8px;flex-wrap:wrap}.post-actions button{width:auto;flex:1;min-width:140px}.post-card .meta{color:#52606d;font-size:14px}.post-card .state{font-weight:700}.post-card button:disabled{opacity:.5;cursor:not-allowed}.dashboard{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.metric{border:1px solid #dce2e7;border-radius:8px;padding:12px;background:#f8fafb}.metric strong{display:block;font-size:25px}.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:14px 0}.calendar-day{min-height:95px;border:1px solid #dce2e7;border-radius:6px;padding:6px;min-width:0;background:#fff}.calendar-day.other{background:#f5f7f8;color:#7b8790}.calendar-day strong{display:block;font-size:12px}.calendar-chip{display:block;width:100%;text-align:left;font-size:11px;line-height:1.3;margin:4px 0;padding:5px;border:1px solid #a9bdc7;background:#eaf2f6;border-radius:4px;overflow-wrap:anywhere;cursor:pointer}.calendar-chip.cancelled{background:#f0f0f0;border-color:#ddd}.calendar-chip.approved{background:#eaf4ec;border-color:#b5d4bc}.calendar-weekday{font-size:12px;text-align:center;font-weight:700}.calendar-list{list-style:none;padding:0}.calendar-list li{border-bottom:1px solid #e5e9ec;padding:10px 0}.calendar-list time{font-weight:600}.calendar-list small{display:block;color:#52606d}@media(min-width:650px){.dashboard{grid-template-columns:repeat(4,minmax(0,1fr))}}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}.post-card{border:1px solid #dce2e7;border-radius:10px;padding:16px;margin:12px 0;background:#fff}.post-card h3{margin:0 0 8px}.post-card p{overflow-wrap:anywhere}.post-card img{max-width:180px;max-height:140px;object-fit:cover;border-radius:6px}.post-actions{display:flex;gap:8px;flex-wrap:wrap}.post-actions button{width:auto;flex:1;min-width:140px}.post-card .meta{color:#52606d;font-size:14px}.post-card .state{font-weight:700}.post-card button:disabled{opacity:.5;cursor:not-allowed}.dashboard{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.metric{border:1px solid #dce2e7;border-radius:8px;padding:12px;background:#f8fafb}.metric strong{display:block;font-size:25px}.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:14px 0}.calendar-day{min-height:95px;border:1px solid #dce2e7;border-radius:6px;padding:6px;min-width:0;background:#fff}.calendar-day.other{background:#f5f7f8;color:#7b8790}.calendar-day strong{display:block;font-size:12px}.calendar-chip{display:block;width:100%;text-align:left;font-size:11px;line-height:1.3;margin:4px 0;padding:5px;border:1px solid #a9bdc7;background:#eaf2f6;border-radius:4px;overflow-wrap:anywhere;cursor:pointer}.calendar-chip.cancelled{background:#f0f0f0;border-color:#ddd}.calendar-chip.approved{background:#eaf4ec;border-color:#b5d4bc}.calendar-weekday{font-size:12px;text-align:center;font-weight:700}.calendar-grid.weekly{grid-template-columns:1fr;gap:8px}.calendar-grid.weekly .calendar-weekday{display:none}.calendar-grid.weekly .calendar-day{min-height:64px;display:grid;grid-template-columns:100px minmax(0,1fr);align-items:start;gap:8px}.calendar-grid.weekly .calendar-day strong{font-size:14px;padding:7px 0}.calendar-grid.weekly .calendar-chip{grid-column:2;font-size:13px;white-space:normal}.calendar-chip,.calendar-chip:hover{color:#153247!important;font-weight:600!important;box-shadow:none!important}.calendar-chip.cancelled{color:#424a51!important;background:#e9eaec!important;border-color:#c9cdd1!important}.calendar-chip.approved{color:#18582b!important;background:#e4f3e8!important;border-color:#a9cfb2!important}.calendar-chip.draft{color:#174c70!important;background:#e3f1fb!important;border-color:#a5c9e0!important}.calendar-chip:focus-visible{outline:3px solid #1d668e;outline-offset:2px}.calendar-day{overflow:hidden}.calendar-chip{white-space:nowrap;text-overflow:ellipsis;overflow:hidden;line-height:1.4;min-height:32px}.calendar-detail{border:1px solid #cbd6dd;border-radius:8px;padding:14px;background:#f7fafc;margin-top:12px}.calendar-detail p{overflow-wrap:anywhere}.calendar-detail button{margin-top:8px}@media(max-width:640px){.calendar-grid:not(.weekly){overflow-x:auto;min-width:640px}.calendar-day{padding:4px}.calendar-chip{font-size:10px}}.calendar-list{list-style:none;padding:0}.calendar-list li{border-bottom:1px solid #e5e9ec;padding:10px 0}.calendar-list time{font-weight:600}.calendar-list small{display:block;color:#52606d}@media(min-width:650px){.dashboard{grid-template-columns:repeat(4,minmax(0,1fr))}}
 </style></head><body>
 <h1>SocialPlan 5.8 — PostgreSQL test</h1>
 <p>Bu ekran yalnızca izole geliştirme API'si içindir. Instagram'a otomatik yayın yapmaz.</p>
@@ -403,7 +403,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:12px}
 <button id="refresh">Taslakları listele</button><h3>İçerik işlemleri</h3><label for="post-id">İçerik numarası (ID)</label><input id="post-id" type="number" min="1" step="1" placeholder="Örnek: 3"><button id="approve">İçeriği onayla</button><button id="cancel">İçeriği iptal et</button><p>Onay işlemi Instagram'da paylaşım yapmaz. İptal edilen içerik kaydı silinmez.</p></section>
 <section id="edit-section" hidden><h2>Taslağı düzenle</h2><p>Yalnızca taslak durumundaki içerikler düzenlenebilir.</p><label for="edit-id">İçerik ID</label><input id="edit-id" readonly><label for="edit-caption">Açıklama</label><textarea id="edit-caption"></textarea><label for="edit-media">HTTPS medya bağlantısı</label><input id="edit-media" type="url"><label for="edit-date">Planlanan tarih</label><input id="edit-date" type="datetime-local"><button id="save-edit">Değişiklikleri kaydet</button><button id="close-edit" type="button">Vazgeç</button><p id="edit-status" role="status"></p></section>
 <section><h2>Yönetim özeti</h2><div class="dashboard" id="dashboard" aria-live="polite"><div class="metric">İçerik verileri giriş sonrasında yüklenir.</div></div></section>
-<section><h2>Yayın takvimi</h2><p>Planlanan içerikler, yayınlanmadan yalnızca takvim görünümünde listelenir.</p><label for="calendar-view">Takvim görünümü</label><select id="calendar-view"><option value="month">Aylık</option><option value="week">Haftalık</option></select><label for="calendar-month">Ay seçin</label><input id="calendar-month" type="month"><label for="calendar-week-date" id="calendar-week-label" hidden>Haftadan bir gün seçin</label><input id="calendar-week-date" type="date" hidden><div id="calendar-grid" class="calendar-grid" aria-live="polite"></div><details><summary>Kronolojik liste</summary><ul id="calendar-list" class="calendar-list"></ul></details></section>
+<section><h2>Yayın takvimi</h2><p>Planlanan içerikler, yayınlanmadan yalnızca takvim görünümünde listelenir.</p><label for="calendar-view">Takvim görünümü</label><select id="calendar-view"><option value="month">Aylık</option><option value="week">Haftalık</option></select><label for="calendar-month">Ay seçin</label><input id="calendar-month" type="month"><label for="calendar-week-date" id="calendar-week-label" hidden>Haftadan bir gün seçin</label><input id="calendar-week-date" type="date" hidden><div id="calendar-grid" class="calendar-grid" aria-live="polite"></div><div id="calendar-detail" class="calendar-detail" hidden aria-live="polite"></div><details><summary>Kronolojik liste</summary><ul id="calendar-list" class="calendar-list"></ul></details></section>
 <section><h2>İçerik yönetimi</h2><p>İçerikleriniz burada tarih, açıklama ve durumlarıyla görüntülenir.</p><label for="status-filter">Duruma göre filtrele</label><select id="status-filter"><option value="all">Tüm içerikler</option><option value="draft">Taslaklar</option><option value="approved">Onaylananlar</option><option value="cancelled">İptal edilenler</option></select><p id="post-count" aria-live="polite"></p><div id="post-list" aria-live="polite">İçerikleri görmek için giriş yapıp Taslakları listele seçeneğine basın.</div></section><details><summary>Teknik işlem çıktısı</summary><pre id="output" role="status"></pre></details>
 <script>
 let token = sessionStorage.getItem("socialplan_pg_test_token") || "", mediaKey = "", cachedPosts = [];
@@ -519,6 +519,21 @@ function updateDashboard(posts) {
  }
 }
 function localDateKey(date){return [date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-");}
+function showCalendarDetail(post){
+ const root=document.getElementById("calendar-detail");root.replaceChildren();root.hidden=false;
+ const title=document.createElement("h3");title.textContent="İçerik #"+post.id;
+ const caption=document.createElement("p");caption.textContent=post.caption;
+ const when=document.createElement("p");when.textContent="Planlanan: "+new Date(post.scheduled_at).toLocaleString("tr-TR");
+ const labels={draft:"Taslak",approved:"Onaylandı",cancelled:"İptal edildi"};
+ const status=document.createElement("p");status.textContent="Durum: "+(labels[post.status]||post.status);
+ root.append(title,caption,when,status);
+ if(post.status==="draft" && post.media_url?.startsWith("https://")){
+  const edit=document.createElement("button");edit.textContent="Taslağı düzenle";edit.onclick=()=>openDraftEditor(post);root.append(edit);
+ }
+ const go=document.createElement("button");go.textContent="İçerik yönetiminde göster";
+ go.onclick=()=>{document.getElementById("status-filter").value="all";renderPosts(cachedPosts);document.getElementById("post-id").value=post.id;document.getElementById("post-list").scrollIntoView({behavior:"smooth"});};
+ root.append(go);
+}
 function updateCalendar(posts){
  const mode=document.getElementById("calendar-view").value;
  const month=document.getElementById("calendar-month").value;
@@ -527,7 +542,7 @@ function updateCalendar(posts){
  document.querySelector('label[for="calendar-month"]').hidden=mode==="week";
  document.getElementById("calendar-week-date").hidden=mode!=="week";
  document.getElementById("calendar-week-label").hidden=mode!=="week";
- const grid=document.getElementById("calendar-grid");grid.replaceChildren();
+ const grid=document.getElementById("calendar-grid");grid.replaceChildren();grid.classList.toggle("weekly",mode==="week");document.getElementById("calendar-detail").hidden=true;
  const root=document.getElementById("calendar-list");root.replaceChildren();
  let start,end;
  if(mode==="week"){
@@ -550,12 +565,12 @@ function updateCalendar(posts){
  for(let day=new Date(start);day<end;day.setDate(day.getDate()+1)){
   const cell=document.createElement("div");cell.className="calendar-day";
   if(mode==="month"&&localDateKey(day).slice(0,7)!==month)cell.classList.add("other");
-  const title=document.createElement("strong");title.textContent=String(day.getDate());cell.append(title);
+  const title=document.createElement("strong");title.textContent=mode==="week"?day.toLocaleDateString("tr-TR",{day:"numeric",month:"short",weekday:"short"}):String(day.getDate());cell.append(title);
   for(const p of grouped.get(localDateKey(day))||[]){
    const chip=document.createElement("button");chip.type="button";chip.className="calendar-chip "+p.status;
-   chip.textContent=new Date(p.scheduled_at).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+" #"+p.id+" "+p.caption;
+   chip.textContent=new Date(p.scheduled_at).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})+" · #"+p.id+" · "+(p.caption.length>34?p.caption.slice(0,34)+"…":p.caption);
    chip.title=(names[p.status]||p.status)+" — "+p.caption;
-   chip.onclick=()=>{document.getElementById("status-filter").value="all";renderPosts(cachedPosts);document.getElementById("post-id").value=p.id;document.getElementById("post-list").scrollIntoView({behavior:"smooth"});};
+   chip.onclick=()=>showCalendarDetail(p);
    cell.append(chip);
   }
   grid.append(cell);
